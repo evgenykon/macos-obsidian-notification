@@ -1,0 +1,5 @@
+.env
+*.xcworkspace
+xcuserdata/
+DerivedData/
+.DS_Store
