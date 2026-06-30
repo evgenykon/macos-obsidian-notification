@@ -4,7 +4,9 @@ struct AppConfig: Sendable {
     var vaultPath: String
     var tasksFolder: String
     var promptFile: String
+    var historyFolder: String
     var historyFilePattern: String
+    var archiveFolder: String
     var apiKey: String
     var model: String
     var baseURL: String
@@ -33,6 +35,15 @@ struct AppConfig: Sendable {
             return fallback
         }
 
+        func migrate(_ key: String) -> String {
+            let val = envOrUserDefaults(key: key, envKey: key, fallback: "")
+            let prefix = "Inbox/tasks/"
+            if val.hasPrefix(prefix) {
+                return String(val.dropFirst(prefix.count))
+            }
+            return val
+        }
+
         let checkInterval: TimeInterval
         if defaults.object(forKey: "checkInterval") != nil {
             checkInterval = defaults.double(forKey: "checkInterval")
@@ -42,11 +53,16 @@ struct AppConfig: Sendable {
             checkInterval = 30
         }
 
+        let defaultPromptFile = "_prompt_task.md"
+        let defaultHistoryPattern = "history-{date}.md"
+
         return AppConfig(
             vaultPath: envOrUserDefaults(key: "vaultPath", envKey: "OBSIDIAN_VAULT_PATH", fallback: ""),
             tasksFolder: envOrUserDefaults(key: "tasksFolder", envKey: "TASKS_FOLDER", fallback: "Inbox/tasks"),
-            promptFile: envOrUserDefaults(key: "promptFile", envKey: "PROMPT_FILE", fallback: "Inbox/tasks/_prompt_task.md"),
-            historyFilePattern: envOrUserDefaults(key: "historyFilePattern", envKey: "HISTORY_FILE_PATTERN", fallback: "Inbox/tasks/history-{date}.md"),
+            promptFile: migrate("promptFile").nilIfEmpty ?? defaultPromptFile,
+            historyFolder: envOrUserDefaults(key: "historyFolder", envKey: "HISTORY_FOLDER", fallback: "Inbox/tasks"),
+            historyFilePattern: migrate("historyFilePattern").nilIfEmpty ?? defaultHistoryPattern,
+            archiveFolder: envOrUserDefaults(key: "archiveFolder", envKey: "ARCHIVE_FOLDER", fallback: "Archives/Задачи"),
             apiKey: envOrUserDefaults(key: "apiKey", envKey: "OPENROUTER_API_KEY", fallback: ""),
             model: envOrUserDefaults(key: "model", envKey: "AI_MODEL", fallback: "openai/gpt-4o-mini"),
             baseURL: envOrUserDefaults(key: "baseURL", envKey: "AI_BASE_URL", fallback: "https://openrouter.ai/api/v1"),
@@ -68,14 +84,26 @@ struct AppConfig: Sendable {
         defaults.set(checkInterval, forKey: "checkInterval")
         defaults.set(notificationsStartHour, forKey: "notificationsStartHour")
         defaults.set(notificationsEndHour, forKey: "notificationsEndHour")
+        defaults.set(archiveFolder, forKey: "archiveFolder")
+        defaults.set(historyFolder, forKey: "historyFolder")
     }
 
     var tasksFolderURL: URL {
         URL(fileURLWithPath: vaultPath).appendingPathComponent(tasksFolder)
     }
 
+    var historyFolderURL: URL {
+        URL(fileURLWithPath: vaultPath).appendingPathComponent(historyFolder)
+    }
+
     var isWithinNotificationWindow: Bool {
         let hour = Calendar.current.component(.hour, from: Date())
         return hour >= notificationsStartHour && hour < notificationsEndHour
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

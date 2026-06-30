@@ -2,14 +2,15 @@ import SwiftUI
 
 struct NotificationHistoryView: View {
     let notifications: [AINotification]
+    let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "bell.and.waveform")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text("Последние уведомления")
+                Text("Последнее уведомление")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .textCase(.uppercase)
@@ -17,7 +18,7 @@ struct NotificationHistoryView: View {
             .padding(.horizontal, 12)
             .padding(.top, 8)
 
-            ForEach(notifications.prefix(3)) { notification in
+            if let notification = notifications.first {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text(notification.taskTitle)
@@ -28,15 +29,30 @@ struct NotificationHistoryView: View {
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
-                    Text(notification.aiMessage)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
+                    if notification.aiMessage.count > 200 {
+                        ScrollView {
+                            Text(notification.aiMessage)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxHeight: 100)
+                    } else {
+                        Text(notification.aiMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 4)
+                .overlay(
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture { onTap() }
+                )
             }
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 6)
     }
 }

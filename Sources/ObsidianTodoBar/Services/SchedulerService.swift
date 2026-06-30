@@ -52,6 +52,19 @@ final class SchedulerService {
 
         let dueTasks = taskStore.tasksNeedingNotification()
 
+        // Eagerly mark tasks as done to prevent double-fire on next tick
+        for task in dueTasks {
+            // Mark all siblings in the same file as notified too
+            for sibling in taskStore.tasks where sibling.filePath == task.filePath {
+                if sibling.recurring != nil {
+                    try? taskStore.advanceRecurringTask(sibling)
+                } else {
+                    taskStore.markNotified(sibling)
+                }
+            }
+        }
+
+        // Now process notifications asynchronously
         for task in dueTasks {
             Task {
                 await processNotification(for: task)
@@ -62,15 +75,7 @@ final class SchedulerService {
     }
 
     private func processNotification(for task: TaskItem) async {
-        guard config.isWithinNotificationWindow else {
-            // Outside window — advance recurring tasks, mark non-recurring as notified
-            if task.recurring != nil {
-                try? taskStore.advanceRecurringTask(task)
-            } else {
-                taskStore.markNotified(task)
-            }
-            return
-        }
+        guard config.isWithinNotificationWindow else { return }
 
         do {
             let promptTemplate = try promptService.readPrompt()
@@ -98,12 +103,6 @@ final class SchedulerService {
 
             try historyService.append(notification: notification)
 
-            if task.recurring != nil {
-                try taskStore.advanceRecurringTask(task)
-            } else {
-                taskStore.markNotified(task)
-            }
-
         } catch {
             let fallback: String
             if let effectiveDate = task.effectiveDate {
@@ -124,12 +123,6 @@ final class SchedulerService {
             )
 
             taskStore.addNotification(notification)
-
-            if task.recurring != nil {
-                try? taskStore.advanceRecurringTask(task)
-            } else {
-                taskStore.markNotified(task)
-            }
         }
     }
 }

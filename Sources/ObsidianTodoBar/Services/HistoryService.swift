@@ -42,7 +42,7 @@ struct HistoryService {
         let fileName = config.historyFilePattern
             .replacingOccurrences(of: "{date}", with: dateString)
 
-        return config.tasksFolderURL.appendingPathComponent(fileName)
+        return config.historyFolderURL.appendingPathComponent(fileName)
     }
 
     private func createHistoryFile(at url: URL, entry: String) throws {

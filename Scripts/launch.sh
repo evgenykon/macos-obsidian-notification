@@ -14,7 +14,6 @@ if [ -f "$PROJECT_DIR/.env" ]; then
     source "$PROJECT_DIR/.env"
     set +a
 
-    # Populate UserDefaults so app works when launched via open (no env vars)
     defaults write "$BUNDLE_ID" vaultPath "${OBSIDIAN_VAULT_PATH:-}" 2>/dev/null || true
     defaults write "$BUNDLE_ID" tasksFolder "${TASKS_FOLDER:-Inbox/tasks}" 2>/dev/null || true
     defaults write "$BUNDLE_ID" promptFile "${PROMPT_FILE:-Inbox/tasks/_prompt_task.md}" 2>/dev/null || true
@@ -27,7 +26,17 @@ if [ -f "$PROJECT_DIR/.env" ]; then
     defaults write "$BUNDLE_ID" notificationsEndHour "${NOTIFICATIONS_END_HOUR:-18}" 2>/dev/null || true
 fi
 
-BUNDLE_DIR="/tmp/${APP_NAME}.app"
+BUILD_DIR="$PROJECT_DIR/.build/debug"
+if [ "$CONFIG" = "release" ]; then
+    swift build -c release
+    BUILD_DIR="$PROJECT_DIR/.build/release"
+else
+    swift build
+    BUILD_DIR="$PROJECT_DIR/.build/debug"
+fi
+
+# Build bundle in ~/Applications (proper location for TCC)
+BUNDLE_DIR="${HOME}/Applications/${APP_NAME}.app"
 
 # Kill existing instance
 if [ -d "$BUNDLE_DIR" ]; then
@@ -36,14 +45,6 @@ if [ -d "$BUNDLE_DIR" ]; then
         kill "$BUNDLE_PID" 2>/dev/null || true
         sleep 0.5
     fi
-fi
-
-if [ "$CONFIG" = "release" ]; then
-    swift build -c release
-    BUILD_DIR="$PROJECT_DIR/.build/release"
-else
-    swift build
-    BUILD_DIR="$PROJECT_DIR/.build/debug"
 fi
 
 rm -rf "$BUNDLE_DIR"
@@ -70,7 +71,8 @@ cat > "$BUNDLE_DIR/Contents/Info.plist" << EOF
 </plist>
 EOF
 
-echo "Launching $APP_NAME..."
+# Ad-hoc sign for proper TCC integration
+codesign --force --deep --sign - "$BUNDLE_DIR" 2>/dev/null || true
 
-# open registers the bundle with Launch Services so it appears in System Settings → Notifications
+echo "Launching $APP_NAME from ~/Applications..."
 open "$BUNDLE_DIR"

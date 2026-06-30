@@ -9,7 +9,7 @@ final class TaskStore {
     var isLoading = false
     var errorMessage: String?
 
-    private var notifiedTaskIDs: Set<UUID> = []
+    private var notifiedTaskIDs: Set<String> = []
 
     private let config: AppConfig
 
@@ -38,11 +38,17 @@ final class TaskStore {
 
     func tasksNeedingNotification() -> [TaskItem] {
         let now = Date()
+        var seenFiles = Set<String>()
+
         return tasks.filter { task in
             guard !task.isDone else { return false }
             guard !notifiedTaskIDs.contains(task.id) else { return false }
             guard let effectiveDate = task.effectiveDate else { return false }
-            return effectiveDate <= now
+            guard effectiveDate <= now else { return false }
+            // Only one notification per file
+            guard !seenFiles.contains(task.filePath) else { return false }
+            seenFiles.insert(task.filePath)
+            return true
         }
     }
 
@@ -55,10 +61,10 @@ final class TaskStore {
               let nextDate = task.nextDueDate
         else { return }
 
-        let fileURL = config.tasksFolderURL.appendingPathComponent(task.filePath)
+        let vaultRootURL = URL(fileURLWithPath: config.vaultPath)
+        let fileURL = vaultRootURL.appendingPathComponent(task.filePath)
         var content = try String(contentsOf: fileURL, encoding: .utf8)
 
-        // Update `due:` line in frontmatter
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let dateString = dateFormatter.string(from: task.dueDate ?? Date())
@@ -73,16 +79,12 @@ final class TaskStore {
             with: "date: \(nextDateString)"
         )
 
-        // Reset all checkboxes: - [x] → - [ ]
         content = content.replacingOccurrences(of: "- [x]", with: "- [ ]")
         content = content.replacingOccurrences(of: "- [X]", with: "- [ ]")
 
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
 
-        // Remove from notified so it can fire again on the new date
         notifiedTaskIDs.remove(task.id)
-
-        // Refresh in-memory state
         refreshTasks()
     }
 
@@ -96,7 +98,7 @@ final class TaskStore {
     func markDone(task: TaskItem) throws {
         guard task.isDone == false else { return }
 
-        let fileURL = config.tasksFolderURL.appendingPathComponent(task.filePath)
+        let fileURL = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(task.filePath)
         var content = try String(contentsOf: fileURL, encoding: .utf8)
         let lines = content.split(separator: "\n", omittingEmptySubsequences: false)
 
@@ -115,5 +117,32 @@ final class TaskStore {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index].isDone = true
         }
+
+        // Archive if all tasks in this file are done
+        try archiveIfAllDone(fileURL: fileURL, vaultRelativePath: task.filePath)
+    }
+
+    private func archiveIfAllDone(fileURL: URL, vaultRelativePath: String) throws {
+        // Don't archive recurring files — they need to keep running
+        let hasRecurring = tasks.contains { $0.filePath == vaultRelativePath && $0.recurring != nil }
+        guard !hasRecurring else { return }
+
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        let hasOpenTask = content.contains("- [ ]")
+        guard !hasOpenTask else { return }
+
+        let archiveDir = URL(fileURLWithPath: config.vaultPath)
+            .appendingPathComponent(config.archiveFolder)
+        try FileManager.default.createDirectory(at: archiveDir, withIntermediateDirectories: true)
+
+        let fileName = (vaultRelativePath as NSString).lastPathComponent
+        let destURL = archiveDir.appendingPathComponent(fileName)
+
+        if FileManager.default.fileExists(atPath: destURL.path) {
+            try FileManager.default.removeItem(at: destURL)
+        }
+        try FileManager.default.moveItem(at: fileURL, to: destURL)
+
+        tasks.removeAll { $0.filePath == vaultRelativePath }
     }
 }

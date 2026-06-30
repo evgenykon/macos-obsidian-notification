@@ -8,7 +8,7 @@ enum Recurring: String, Sendable {
 }
 
 struct TaskItem: Identifiable, Sendable {
-    let id: UUID
+    let id: String
     var title: String
     var isDone: Bool
     var dueDate: Date?
@@ -19,7 +19,6 @@ struct TaskItem: Identifiable, Sendable {
     var fileContent: String
 
     init(
-        id: UUID = UUID(),
         title: String,
         isDone: Bool = false,
         dueDate: Date? = nil,
@@ -29,7 +28,7 @@ struct TaskItem: Identifiable, Sendable {
         lineNumber: Int,
         fileContent: String = ""
     ) {
-        self.id = id
+        self.id = "\(filePath):\(lineNumber)"
         self.title = title
         self.isDone = isDone
         self.dueDate = dueDate
@@ -82,10 +81,10 @@ struct TaskItem: Identifiable, Sendable {
         case .weekdays:
             let next = calendar.date(byAdding: .day, value: 1, to: dueDate)!
             let weekday = calendar.component(.weekday, from: next)
-            if weekday == 7 { // saturday → monday
+            if weekday == 7 {
                 return calendar.date(byAdding: .day, value: 2, to: next)
             }
-            if weekday == 1 { // sunday → monday
+            if weekday == 1 {
                 return calendar.date(byAdding: .day, value: 1, to: next)
             }
             return next

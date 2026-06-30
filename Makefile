@@ -1,6 +1,6 @@
 APP_NAME = ObsidianTodoBar
 BUILD_DIR = .build
-LOCAL_APPS = $(HOME)/Applications
+BUNDLE_DIR = $(HOME)/Applications/$(APP_NAME).app
 
 .PHONY: all build run release clean launch launch-release install uninstall
 
@@ -18,21 +18,10 @@ release:
 clean:
 	swift package clean
 	rm -rf $(BUILD_DIR)
-	rm -rf /tmp/$(APP_NAME).app
-	rm -rf $(LOCAL_APPS)/$(APP_NAME).app
+	rm -rf $(BUNDLE_DIR)
 
 launch:
 	./Scripts/launch.sh
 
 launch-release:
 	./Scripts/launch.sh release
-
-install: build
-	rm -rf $(LOCAL_APPS)/$(APP_NAME).app
-	mkdir -p $(LOCAL_APPS)
-	cp -R /tmp/$(APP_NAME).app $(LOCAL_APPS)/$(APP_NAME).app
-	codesign -f -s - --deep $(LOCAL_APPS)/$(APP_NAME).app 2>/dev/null || true
-	open $(LOCAL_APPS)/$(APP_NAME).app
-
-uninstall:
-	rm -rf $(LOCAL_APPS)/$(APP_NAME).app

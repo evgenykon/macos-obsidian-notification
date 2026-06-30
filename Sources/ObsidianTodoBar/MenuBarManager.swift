@@ -14,7 +14,7 @@ final class MenuBarManager: NSObject {
     private var settingsWindow: NSWindow?
 
     let popoverWidth: CGFloat = 380
-    let popoverHeight: CGFloat = 520
+    let popoverHeight: CGFloat = 600
 
     func setup(
         taskStore: TaskStore,
@@ -48,6 +48,7 @@ final class MenuBarManager: NSObject {
                 onReloadPrompt: { [weak self] in self?.reloadPrompt() },
                 onEditPrompt: { [weak self] in self?.editPrompt() },
                 onOpenTasksFolder: { [weak self] in self?.openTasksFolder() },
+                onOpenHistory: { [weak self] in self?.openHistory() },
                 onMarkDone: { [weak self] task in self?.markDone(task: task) }
             )
         )
@@ -82,6 +83,14 @@ final class MenuBarManager: NSObject {
 
         m.addItem(.separator())
 
+        let refreshItem = NSMenuItem(title: "🔄 Refresh tasks", action: #selector(refreshTasks), keyEquivalent: "")
+        refreshItem.target = self
+        m.addItem(refreshItem)
+
+        let forceItem = NSMenuItem(title: "▶ Force notify now", action: #selector(forceNotify), keyEquivalent: "f")
+        forceItem.target = self
+        m.addItem(forceItem)
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         m.addItem(quitItem)
@@ -107,6 +116,50 @@ final class MenuBarManager: NSObject {
             popover.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
             popover.contentViewController?.view.window?.becomeKey()
         }
+    }
+
+    @objc private func refreshTasks() {
+        taskStore.refreshTasks()
+    }
+
+    @objc private func forceNotify() {
+        let overdue = taskStore.tasks.filter { !$0.isDone && $0.isOverdue }
+        if overdue.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Нет просроченных задач"
+            alert.runModal()
+            return
+        }
+        for task in overdue {
+            notificationService.show(title: task.title, body: "Напоминание: задача просрочена")
+        }
+        let alert = NSAlert()
+        alert.messageText = "Отправлено \(overdue.count) уведомлений"
+        alert.runModal()
+    }
+
+    private func openHistory() {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let dateString = df.string(from: Date())
+
+        let fileName = (config.historyFolder as NSString).appendingPathComponent(
+            config.historyFilePattern.replacingOccurrences(of: "{date}", with: dateString)
+        )
+
+        let vaultName = (config.vaultPath as NSString).lastPathComponent
+
+        guard let encodedVault = vaultName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let encodedFile = fileName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "obsidian://open?vault=\(encodedVault)&file=\(encodedFile)")
+        else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "openHistory called"
+        alert.informativeText = url.absoluteString
+        alert.runModal()
+
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func testNotification() {
@@ -169,6 +222,10 @@ final class MenuBarManager: NSObject {
             onSave: { [weak self] newConfig in
                 self?.config = newConfig
                 self?.restartScheduler()
+            },
+            onClose: { [weak self] in
+                self?.settingsWindow?.orderOut(nil)
+                self?.settingsWindow = nil
             }
         )
 

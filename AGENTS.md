@@ -57,7 +57,7 @@ time: 14:30
 
 - **No file watcher** — simple polling (30s interval)
 - **Prompt reload** — only on demand via tray menu "Reload prompt"
-- **Mark done** — modifies `.md` file directly (`- [ ]` → `- [x]`)
+- **Mark done** — modifies `.md` file directly (`- [ ]` → `- [x]`); if all tasks in the file are done, moves it to `Archives/Задачи/`
 - **Notification scheduling** — UNUserNotification with custom sound
 - **API key** — stored in Keychain
 

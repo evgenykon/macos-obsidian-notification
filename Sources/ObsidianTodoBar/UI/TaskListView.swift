@@ -4,6 +4,11 @@ struct TaskListView: View {
     let tasks: [TaskItem]
     let onMarkDone: (TaskItem) -> Void
 
+    private func fileName(from path: String) -> String {
+        let name = (path as NSString).lastPathComponent
+        return (name as NSString).deletingPathExtension
+    }
+
     private var sections: [TaskSection] {
         let calendar = Calendar.current
 
@@ -59,14 +64,29 @@ struct TaskListView: View {
                         .padding(.horizontal, 12)
                         .padding(.top, 8)
 
-                        ForEach(section.tasks) { task in
-                            TaskRowView(task: task, onMarkDone: onMarkDone)
+                        ForEach(groupedByFile(section.tasks), id: \.0) { file, fileTasks in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(file)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 4)
+
+                                ForEach(fileTasks) { task in
+                                    TaskRowView(task: task, onMarkDone: onMarkDone)
+                                }
+                            }
                         }
                     }
                 }
             }
             .padding(.vertical, 8)
         }
+    }
+
+    private func groupedByFile(_ tasks: [TaskItem]) -> [(String, [TaskItem])] {
+        Dictionary(grouping: tasks) { fileName(from: $0.filePath) }
+            .sorted { $0.key < $1.key }
     }
 }
 

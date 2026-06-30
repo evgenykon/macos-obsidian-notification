@@ -7,6 +7,7 @@ struct PopoverContentView: View {
     let onReloadPrompt: () -> Void
     let onEditPrompt: () -> Void
     let onOpenTasksFolder: () -> Void
+    let onOpenHistory: () -> Void
     let onMarkDone: (TaskItem) -> Void
 
     private var todayTasks: [TaskItem] {
@@ -27,33 +28,36 @@ struct PopoverContentView: View {
 
             notificationBannerIfNeeded
 
-            if taskStore.isLoading {
-                Spacer()
-                ProgressView()
-                    .scaleEffect(0.8)
-                Spacer()
-            } else if todayTasks.isEmpty {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text("На сегодня нет задач")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+            VStack(spacing: 0) {
+                if taskStore.isLoading {
+                    Spacer()
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Spacer()
+                } else if todayTasks.isEmpty {
+                    Spacer()
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("На сегодня нет задач")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                } else {
+                    TaskListView(
+                        tasks: todayTasks,
+                        onMarkDone: onMarkDone
+                    )
                 }
-                Spacer()
-            } else {
-                TaskListView(
-                    tasks: todayTasks,
-                    onMarkDone: onMarkDone
-                )
-            }
 
-            if !taskStore.recentNotifications.isEmpty {
-                Divider()
-                NotificationHistoryView(notifications: taskStore.recentNotifications)
+                if !taskStore.recentNotifications.isEmpty {
+                    Divider()
+                    NotificationHistoryView(notifications: taskStore.recentNotifications, onTap: onOpenHistory)
+                }
             }
+            .frame(minHeight: 0, maxHeight: .infinity)
 
             Divider()
             footerView
