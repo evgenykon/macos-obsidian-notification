@@ -9,6 +9,8 @@ struct AppConfig: Sendable {
     var model: String
     var baseURL: String
     var checkInterval: TimeInterval
+    var notificationsStartHour: Int
+    var notificationsEndHour: Int
 
     static func load() -> AppConfig {
         let defaults = UserDefaults.standard
@@ -19,6 +21,16 @@ struct AppConfig: Sendable {
                 return saved
             }
             return env[envKey] ?? fallback
+        }
+
+        func intEnvOrUserDefaults(key: String, envKey: String, fallback: Int) -> Int {
+            if defaults.object(forKey: key) != nil {
+                return defaults.integer(forKey: key)
+            }
+            if let val = env[envKey], let intVal = Int(val) {
+                return intVal
+            }
+            return fallback
         }
 
         let checkInterval: TimeInterval
@@ -38,7 +50,9 @@ struct AppConfig: Sendable {
             apiKey: envOrUserDefaults(key: "apiKey", envKey: "OPENROUTER_API_KEY", fallback: ""),
             model: envOrUserDefaults(key: "model", envKey: "AI_MODEL", fallback: "openai/gpt-4o-mini"),
             baseURL: envOrUserDefaults(key: "baseURL", envKey: "AI_BASE_URL", fallback: "https://openrouter.ai/api/v1"),
-            checkInterval: checkInterval
+            checkInterval: checkInterval,
+            notificationsStartHour: intEnvOrUserDefaults(key: "notificationsStartHour", envKey: "NOTIFICATIONS_START_HOUR", fallback: 9),
+            notificationsEndHour: intEnvOrUserDefaults(key: "notificationsEndHour", envKey: "NOTIFICATIONS_END_HOUR", fallback: 18)
         )
     }
 
@@ -52,9 +66,16 @@ struct AppConfig: Sendable {
         defaults.set(model, forKey: "model")
         defaults.set(baseURL, forKey: "baseURL")
         defaults.set(checkInterval, forKey: "checkInterval")
+        defaults.set(notificationsStartHour, forKey: "notificationsStartHour")
+        defaults.set(notificationsEndHour, forKey: "notificationsEndHour")
     }
 
     var tasksFolderURL: URL {
         URL(fileURLWithPath: vaultPath).appendingPathComponent(tasksFolder)
+    }
+
+    var isWithinNotificationWindow: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= notificationsStartHour && hour < notificationsEndHour
     }
 }

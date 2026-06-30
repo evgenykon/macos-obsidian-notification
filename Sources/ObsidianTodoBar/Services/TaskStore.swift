@@ -50,6 +50,42 @@ final class TaskStore {
         notifiedTaskIDs.insert(task.id)
     }
 
+    func advanceRecurringTask(_ task: TaskItem) throws {
+        guard task.recurring != nil,
+              let nextDate = task.nextDueDate
+        else { return }
+
+        let fileURL = config.tasksFolderURL.appendingPathComponent(task.filePath)
+        var content = try String(contentsOf: fileURL, encoding: .utf8)
+
+        // Update `due:` line in frontmatter
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: task.dueDate ?? Date())
+        let nextDateString = dateFormatter.string(from: nextDate)
+
+        content = content.replacingOccurrences(
+            of: "due: \(dateString)",
+            with: "due: \(nextDateString)"
+        )
+        content = content.replacingOccurrences(
+            of: "date: \(dateString)",
+            with: "date: \(nextDateString)"
+        )
+
+        // Reset all checkboxes: - [x] → - [ ]
+        content = content.replacingOccurrences(of: "- [x]", with: "- [ ]")
+        content = content.replacingOccurrences(of: "- [X]", with: "- [ ]")
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+
+        // Remove from notified so it can fire again on the new date
+        notifiedTaskIDs.remove(task.id)
+
+        // Refresh in-memory state
+        refreshTasks()
+    }
+
     func addNotification(_ notification: AINotification) {
         recentNotifications.insert(notification, at: 0)
         if recentNotifications.count > 50 {

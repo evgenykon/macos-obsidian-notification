@@ -62,6 +62,16 @@ final class SchedulerService {
     }
 
     private func processNotification(for task: TaskItem) async {
+        guard config.isWithinNotificationWindow else {
+            // Outside window — advance recurring tasks, mark non-recurring as notified
+            if task.recurring != nil {
+                try? taskStore.advanceRecurringTask(task)
+            } else {
+                taskStore.markNotified(task)
+            }
+            return
+        }
+
         do {
             let promptTemplate = try promptService.readPrompt()
             let context = task.fileContent
@@ -88,7 +98,11 @@ final class SchedulerService {
 
             try historyService.append(notification: notification)
 
-            taskStore.markNotified(task)
+            if task.recurring != nil {
+                try taskStore.advanceRecurringTask(task)
+            } else {
+                taskStore.markNotified(task)
+            }
 
         } catch {
             let fallback: String
@@ -110,7 +124,12 @@ final class SchedulerService {
             )
 
             taskStore.addNotification(notification)
-            taskStore.markNotified(task)
+
+            if task.recurring != nil {
+                try? taskStore.advanceRecurringTask(task)
+            } else {
+                taskStore.markNotified(task)
+            }
         }
     }
 }

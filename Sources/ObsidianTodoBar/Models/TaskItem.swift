@@ -1,11 +1,19 @@
 import Foundation
 
+enum Recurring: String, Sendable {
+    case daily
+    case weekdays
+    case weekly
+    case monthly
+}
+
 struct TaskItem: Identifiable, Sendable {
     let id: UUID
     var title: String
     var isDone: Bool
     var dueDate: Date?
     var time: String?
+    var recurring: Recurring?
     var filePath: String
     var lineNumber: Int
     var fileContent: String
@@ -16,6 +24,7 @@ struct TaskItem: Identifiable, Sendable {
         isDone: Bool = false,
         dueDate: Date? = nil,
         time: String? = nil,
+        recurring: Recurring? = nil,
         filePath: String,
         lineNumber: Int,
         fileContent: String = ""
@@ -25,6 +34,7 @@ struct TaskItem: Identifiable, Sendable {
         self.isDone = isDone
         self.dueDate = dueDate
         self.time = time
+        self.recurring = recurring
         self.filePath = filePath
         self.lineNumber = lineNumber
         self.fileContent = fileContent
@@ -57,5 +67,32 @@ struct TaskItem: Identifiable, Sendable {
     var isDueTomorrow: Bool {
         guard let dueDate else { return false }
         return Calendar.current.isDateInTomorrow(dueDate)
+    }
+
+    var checkboxPattern: String {
+        isDone ? "- [x]" : "- [ ]"
+    }
+
+    var nextDueDate: Date? {
+        guard let dueDate, let recurring else { return nil }
+        let calendar = Calendar.current
+        switch recurring {
+        case .daily:
+            return calendar.date(byAdding: .day, value: 1, to: dueDate)
+        case .weekdays:
+            let next = calendar.date(byAdding: .day, value: 1, to: dueDate)!
+            let weekday = calendar.component(.weekday, from: next)
+            if weekday == 7 { // saturday → monday
+                return calendar.date(byAdding: .day, value: 2, to: next)
+            }
+            if weekday == 1 { // sunday → monday
+                return calendar.date(byAdding: .day, value: 1, to: next)
+            }
+            return next
+        case .weekly:
+            return calendar.date(byAdding: .day, value: 7, to: dueDate)
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: dueDate)
+        }
     }
 }

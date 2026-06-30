@@ -3,6 +3,7 @@ import Foundation
 struct Frontmatter {
     var dueDate: Date?
     var time: String?
+    var recurring: Recurring?
 }
 
 struct FrontmatterParser {
@@ -24,6 +25,7 @@ struct FrontmatterParser {
 
         var dueDate: Date?
         var time: String?
+        var recurring: Recurring?
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -46,11 +48,13 @@ struct FrontmatterParser {
                 }
             case "time":
                 time = value
+            case "recurring":
+                recurring = Recurring(rawValue: value.lowercased())
             default:
                 break
             }
         }
 
-        return Frontmatter(dueDate: dueDate, time: time)
+        return Frontmatter(dueDate: dueDate, time: time, recurring: recurring)
     }
 }

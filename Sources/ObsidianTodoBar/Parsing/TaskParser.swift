@@ -24,6 +24,7 @@ struct TaskParser {
                 isDone: isDone,
                 dueDate: frontmatter.dueDate,
                 time: frontmatter.time,
+                recurring: frontmatter.recurring,
                 filePath: filePath,
                 lineNumber: index + 1,
                 fileContent: content

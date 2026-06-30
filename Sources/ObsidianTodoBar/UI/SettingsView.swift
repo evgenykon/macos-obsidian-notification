@@ -5,6 +5,8 @@ struct SettingsView: View {
     @State private var tasksFolder: String
     @State private var apiKey: String
     @State private var model: String
+    @State private var startHour: Int
+    @State private var endHour: Int
 
     let onSave: (AppConfig) -> Void
     let config: AppConfig
@@ -16,6 +18,8 @@ struct SettingsView: View {
         _tasksFolder = State(initialValue: config.tasksFolder)
         _apiKey = State(initialValue: config.apiKey)
         _model = State(initialValue: config.model)
+        _startHour = State(initialValue: config.notificationsStartHour)
+        _endHour = State(initialValue: config.notificationsEndHour)
     }
 
     var body: some View {
@@ -35,6 +39,18 @@ struct SettingsView: View {
                     .help("e.g. openai/gpt-4o-mini, claude-3-haiku")
             }
 
+            Section("Notification window") {
+                HStack {
+                    Stepper("Start hour: \(startHour):00", value: $startHour, in: 0...23)
+                }
+                HStack {
+                    Stepper("End hour: \(endHour):00", value: $endHour, in: 1...24)
+                }
+                Text("Notifications only between \(startHour):00 and \(endHour):00")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             HStack {
                 Spacer()
                 Button("Save") {
@@ -43,6 +59,8 @@ struct SettingsView: View {
                     newConfig.tasksFolder = tasksFolder
                     newConfig.apiKey = apiKey
                     newConfig.model = model
+                    newConfig.notificationsStartHour = startHour
+                    newConfig.notificationsEndHour = endHour
                     newConfig.save()
                     onSave(newConfig)
                 }
