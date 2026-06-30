@@ -1,8 +1,7 @@
 APP_NAME = ObsidianTodoBar
 BUILD_DIR = .build
-RELEASE_DIR = $(BUILD_DIR)/release
 
-.PHONY: all build run release clean install uninstall
+.PHONY: all build run release clean launch install uninstall
 
 all: build
 
@@ -19,8 +18,14 @@ clean:
 	swift package clean
 	rm -rf $(BUILD_DIR)
 
-install: release
-	cp -R $(RELEASE_DIR)/$(APP_NAME) /Applications/$(APP_NAME).app
+launch:
+	./Scripts/launch.sh
+
+launch-release:
+	./Scripts/launch.sh release
+
+install: launch-release
+	cp -R /tmp/$(APP_NAME).app /Applications/$(APP_NAME).app
 
 uninstall:
 	rm -rf /Applications/$(APP_NAME).app

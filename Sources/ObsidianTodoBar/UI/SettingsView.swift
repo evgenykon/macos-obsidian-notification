@@ -38,16 +38,12 @@ struct SettingsView: View {
             HStack {
                 Spacer()
                 Button("Save") {
-                    let newConfig = AppConfig(
-                        vaultPath: vaultPath,
-                        tasksFolder: tasksFolder,
-                        promptFile: config.promptFile,
-                        historyFilePattern: config.historyFilePattern,
-                        apiKey: apiKey,
-                        model: model,
-                        baseURL: config.baseURL,
-                        checkInterval: config.checkInterval
-                    )
+                    var newConfig = config
+                    newConfig.vaultPath = vaultPath
+                    newConfig.tasksFolder = tasksFolder
+                    newConfig.apiKey = apiKey
+                    newConfig.model = model
+                    newConfig.save()
                     onSave(newConfig)
                 }
                 .keyboardShortcut(.defaultAction)

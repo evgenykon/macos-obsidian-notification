@@ -32,7 +32,7 @@ CHECK_INTERVAL
 - `SchedulerService` — timer every 30s: scan vault, check for due tasks, trigger notifications
 - `TaskStore` — `@Observable` central state
 - `AIService` — OpenRouter HTTP client, supports any model ID
-- `PromptService` — reads `_prompt.md`, substitutes `{tasks}`, `{context}`, `{dateTime}`
+- `PromptService` — reads `_prompt_task.md`, substitutes `{tasks}`, `{context}`, `{dateTime}`
 - `HistoryService` — appends AI messages to `history-{date}.md`
 - `MenuBarManager` — `NSStatusBar` button + `NSPopover` with SwiftUI content + `NSMenu`
 

@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
-        config = AppConfig.loadFromEnv()
+        config = AppConfig.load()
 
         taskStore = TaskStore(config: config)
 

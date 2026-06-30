@@ -10,25 +10,48 @@ struct AppConfig: Sendable {
     var baseURL: String
     var checkInterval: TimeInterval
 
-    static func loadFromEnv() -> AppConfig {
-        let envDict = ProcessInfo.processInfo.environment
+    static func load() -> AppConfig {
+        let defaults = UserDefaults.standard
+        let env = ProcessInfo.processInfo.environment
 
-        func getEnv(_ key: String, default: String = "") -> String {
-            envDict[key] ?? `default`
+        func envOrUserDefaults(key: String, envKey: String, fallback: String) -> String {
+            if let saved = defaults.string(forKey: key), !saved.isEmpty {
+                return saved
+            }
+            return env[envKey] ?? fallback
         }
 
-        let checkInterval = TimeInterval(getEnv("CHECK_INTERVAL", default: "30")) ?? 30
+        let checkInterval: TimeInterval
+        if defaults.object(forKey: "checkInterval") != nil {
+            checkInterval = defaults.double(forKey: "checkInterval")
+        } else if let envVal = env["CHECK_INTERVAL"], let val = TimeInterval(envVal) {
+            checkInterval = val
+        } else {
+            checkInterval = 30
+        }
 
         return AppConfig(
-            vaultPath: getEnv("OBSIDIAN_VAULT_PATH"),
-            tasksFolder: getEnv("TASKS_FOLDER", default: "Inbox/tasks"),
-            promptFile: getEnv("PROMPT_FILE", default: "Inbox/tasks/_prompt.md"),
-            historyFilePattern: getEnv("HISTORY_FILE_PATTERN", default: "Inbox/tasks/history-{date}.md"),
-            apiKey: getEnv("OPENROUTER_API_KEY"),
-            model: getEnv("AI_MODEL", default: "openai/gpt-4o-mini"),
-            baseURL: getEnv("AI_BASE_URL", default: "https://openrouter.ai/api/v1"),
+            vaultPath: envOrUserDefaults(key: "vaultPath", envKey: "OBSIDIAN_VAULT_PATH", fallback: ""),
+            tasksFolder: envOrUserDefaults(key: "tasksFolder", envKey: "TASKS_FOLDER", fallback: "Inbox/tasks"),
+            promptFile: envOrUserDefaults(key: "promptFile", envKey: "PROMPT_FILE", fallback: "Inbox/tasks/_prompt_task.md"),
+            historyFilePattern: envOrUserDefaults(key: "historyFilePattern", envKey: "HISTORY_FILE_PATTERN", fallback: "Inbox/tasks/history-{date}.md"),
+            apiKey: envOrUserDefaults(key: "apiKey", envKey: "OPENROUTER_API_KEY", fallback: ""),
+            model: envOrUserDefaults(key: "model", envKey: "AI_MODEL", fallback: "openai/gpt-4o-mini"),
+            baseURL: envOrUserDefaults(key: "baseURL", envKey: "AI_BASE_URL", fallback: "https://openrouter.ai/api/v1"),
             checkInterval: checkInterval
         )
+    }
+
+    func save() {
+        let defaults = UserDefaults.standard
+        defaults.set(vaultPath, forKey: "vaultPath")
+        defaults.set(tasksFolder, forKey: "tasksFolder")
+        defaults.set(promptFile, forKey: "promptFile")
+        defaults.set(historyFilePattern, forKey: "historyFilePattern")
+        defaults.set(apiKey, forKey: "apiKey")
+        defaults.set(model, forKey: "model")
+        defaults.set(baseURL, forKey: "baseURL")
+        defaults.set(checkInterval, forKey: "checkInterval")
     }
 
     var tasksFolderURL: URL {

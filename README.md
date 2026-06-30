@@ -13,7 +13,7 @@ macOS menu bar app that reads tasks from an **Obsidian vault** (`Inbox/tasks/`) 
 1. Open `ObsidianTodoBar.xcodeproj` in Xcode
 2. Build & run (macOS 14+)
 3. Configure vault path and OpenRouter API key in Settings
-4. Edit `Inbox/tasks/_prompt.md` to customize AI behavior
+4. Edit `Inbox/tasks/_prompt_task.md` to customize AI behavior
 
 ## Vault Layout
 

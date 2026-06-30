@@ -99,9 +99,16 @@ final class MenuBarManager: NSObject {
 
     @objc private func editPrompt() {
         let url = promptService.promptURL()
-        guard let encodedPath = url.path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
+        let vaultName = (config.vaultPath as NSString).lastPathComponent
+        let relativePath = url.path
+            .replacingOccurrences(of: config.vaultPath, with: "")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 
-        if let obsidianURL = URL(string: "obsidian://open?path=\(encodedPath)") {
+        guard let encodedFile = relativePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let encodedVault = vaultName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+        else { return }
+
+        if let obsidianURL = URL(string: "obsidian://open?vault=\(encodedVault)&file=\(encodedFile)") {
             NSWorkspace.shared.open(obsidianURL)
         }
     }
