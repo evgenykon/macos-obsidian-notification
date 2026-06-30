@@ -30,9 +30,12 @@ final class MenuBarManager: NSObject {
         self.promptService = promptService
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "bell", accessibilityDescription: "Obsidian Todo Bar")
-        statusItem.button?.action = #selector(togglePopover)
-        statusItem.button?.target = self
+
+        let image = NSImage(systemSymbolName: "bell", accessibilityDescription: "Obsidian Todo Bar")
+        let customView = StatusBarButtonView(image: image)
+        customView.onLeftClick = { [weak self] in self?.togglePopover() }
+        customView.onRightClick = { [weak self] in self?.showMenu() }
+        statusItem.view = customView
 
         popover = NSPopover()
         popover.contentSize = NSSize(width: popoverWidth, height: popoverHeight)
@@ -48,10 +51,9 @@ final class MenuBarManager: NSObject {
                 onMarkDone: { [weak self] task in self?.markDone(task: task) }
             )
         )
-
     }
 
-    private var menu: NSMenu {
+    private func buildMenu() -> NSMenu {
         let m = NSMenu()
 
         let reloadItem = NSMenuItem(title: "Reload prompt", action: #selector(reloadPrompt), keyEquivalent: "r")
@@ -74,6 +76,12 @@ final class MenuBarManager: NSObject {
 
         m.addItem(.separator())
 
+        let testItem = NSMenuItem(title: "🔔 Test notification", action: #selector(testNotification), keyEquivalent: "t")
+        testItem.target = self
+        m.addItem(testItem)
+
+        m.addItem(.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         m.addItem(quitItem)
@@ -81,27 +89,51 @@ final class MenuBarManager: NSObject {
         return m
     }
 
+    private func showMenu() {
+        let m = buildMenu()
+        guard let view = statusItem.view else { return }
+        m.popUp(positioning: nil, at: CGPoint(x: 0, y: view.bounds.height + 5), in: view)
+    }
+
     @objc private func togglePopover() {
-        guard let button = statusItem.button else { return }
+        guard let view = statusItem.view else { return }
 
-        let event = NSApp.currentEvent
-
-        // Right-click or option-click → show context menu
-        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.option) == true {
-            let m = menu
-            m.popUp(positioning: nil, at: CGPoint(x: 0, y: button.bounds.height + 5), in: button)
-            return
-        }
-
-        // Left-click → toggle popover
         if popover.isShown {
             popover.performClose(nil)
         } else {
             Task { @MainActor in
                 await notificationService.checkAuthorization()
             }
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
             popover.contentViewController?.view.window?.becomeKey()
+        }
+    }
+
+    @objc private func testNotification() {
+        Task { @MainActor in
+            await notificationService.requestPermissionIfNeeded()
+            let status = notificationService.authorizationStatus
+
+            if status == .authorized {
+                notificationService.show(title: "🧪 Тест", body: "Уведомления работают!")
+                let alert = NSAlert()
+                alert.messageText = "Уведомление отправлено"
+                alert.informativeText = "Статус \(status.rawValue). Должно появиться в центре уведомлений."
+                alert.runModal()
+            } else {
+                let alert = NSAlert()
+                alert.messageText = "Статус: \(status.rawValue)"
+                alert.informativeText = """
+                UNAuthorizationStatus:
+                0 = notDetermined
+                1 = denied
+                2 = authorized
+
+                API возвращает \(status.rawValue). Если диалог не появился — \
+                возможно система заблокировала запрос для этого бандла.
+                """
+                alert.runModal()
+            }
         }
     }
 
@@ -187,4 +219,34 @@ final class MenuBarManager: NSObject {
             popover.performClose(nil)
         }
     }
+}
+
+// MARK: - Status bar custom view
+
+private final class StatusBarButtonView: NSView {
+    private let imageView: NSImageView
+
+    var onLeftClick: (() -> Void)?
+    var onRightClick: (() -> Void)?
+
+    init(image: NSImage?) {
+        self.imageView = NSImageView()
+        super.init(frame: NSRect(x: 0, y: 0, width: 28, height: 22))
+        self.imageView.image = image
+        self.imageView.frame = bounds
+        self.imageView.autoresizingMask = [.width, .height]
+        addSubview(imageView)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func mouseDown(with event: NSEvent) {
+        onLeftClick?()
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        onRightClick?()
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

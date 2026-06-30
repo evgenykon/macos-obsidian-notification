@@ -13,9 +13,16 @@ struct PopoverContentView: View {
         taskStore.tasks.filter { !$0.isDone && ($0.isOverdue || $0.isDueToday) }
     }
 
+    private var missedCount: Int {
+        taskStore.tasks.filter { !$0.isDone && $0.isOverdue }.count
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
+            if missedCount > 0 {
+                missedBanner
+            }
             Divider()
 
             notificationBannerIfNeeded
@@ -72,7 +79,7 @@ struct PopoverContentView: View {
                 button: "Включить",
                 action: {
                     Task { @MainActor in
-                        await notificationService.requestPermission()
+                        await notificationService.requestPermissionIfNeeded()
                     }
                 }
             )
@@ -80,6 +87,21 @@ struct PopoverContentView: View {
         default:
             EmptyView()
         }
+    }
+
+    private var missedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.circle")
+                .foregroundColor(.red)
+            Text("Пропущено: \(missedCount)")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.red)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.red.opacity(0.1))
     }
 
     private func notificationBanner(icon: String, text: String, button: String, action: @escaping () -> Void) -> some View {

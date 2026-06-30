@@ -18,11 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         notificationService = NotificationService()
 
+        // Request permission at startup — this registers the bundle with TCC
         Task { @MainActor in
-            await notificationService.checkAuthorization()
-            if notificationService.authorizationStatus == .notDetermined {
-                await notificationService.requestPermission()
-            }
+            await notificationService.requestPermissionIfNeeded()
         }
 
         let aiService = AIService(config: config)

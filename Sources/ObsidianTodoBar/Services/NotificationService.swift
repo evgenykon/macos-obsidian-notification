@@ -8,47 +8,33 @@ import Observation
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
-    private var center: UNUserNotificationCenter? {
-        guard Bundle.main.bundleIdentifier != nil else { return nil }
-        return UNUserNotificationCenter.current()
-    }
+    private let center = UNUserNotificationCenter.current()
 
     override init() {
         super.init()
-        center?.delegate = self
+        center.delegate = self
     }
 
     func checkAuthorization() async {
-        guard let center else {
-            print("Notif: no bundle, skipping auth check")
-            return
-        }
         let settings = await center.notificationSettings()
         authorizationStatus = settings.authorizationStatus
-        print("Notif: auth status = \(settings.authorizationStatus.rawValue)")
     }
 
-    func requestPermission() async {
-        guard let center else { return }
-
+    func requestPermissionIfNeeded() async {
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .notDetermined else {
-            authorizationStatus = settings.authorizationStatus
-            return
-        }
+        authorizationStatus = settings.authorizationStatus
+
+        guard settings.authorizationStatus == .notDetermined else { return }
 
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound])
             authorizationStatus = granted ? .authorized : .denied
         } catch {
-            print("Notification permission error: \(error.localizedDescription)")
-            authorizationStatus = .denied
+            print("Notif: requestAuth error = \(error.localizedDescription)")
         }
     }
 
     func show(title: String, body: String) {
-        guard let center else { return }
-
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -60,7 +46,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             trigger: nil
         )
 
-        center.add(request)
+        center.add(request) { error in
+            if let error {
+                print("Notif: add error = \(error.localizedDescription)")
+            }
+        }
     }
 
     static func openSystemSettings() {
