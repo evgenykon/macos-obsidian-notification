@@ -2,35 +2,43 @@ import SwiftUI
 
 struct PopoverContentView: View {
     let taskStore: TaskStore
+    let notificationService: NotificationService
     let onOpenSettings: () -> Void
     let onReloadPrompt: () -> Void
     let onEditPrompt: () -> Void
     let onOpenTasksFolder: () -> Void
     let onMarkDone: (TaskItem) -> Void
 
+    private var todayTasks: [TaskItem] {
+        taskStore.tasks.filter { !$0.isDone && ($0.isOverdue || $0.isDueToday) }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
             Divider()
+
+            notificationBannerIfNeeded
+
             if taskStore.isLoading {
                 Spacer()
                 ProgressView()
                     .scaleEffect(0.8)
                 Spacer()
-            } else if taskStore.tasks.isEmpty {
+            } else if todayTasks.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.circle")
                         .font(.largeTitle)
                         .foregroundColor(.secondary)
-                    Text("Нет задач")
+                    Text("На сегодня нет задач")
                         .font(.headline)
                         .foregroundColor(.secondary)
                 }
                 Spacer()
             } else {
                 TaskListView(
-                    tasks: taskStore.tasks,
+                    tasks: todayTasks,
                     onMarkDone: onMarkDone
                 )
             }
@@ -46,6 +54,52 @@ struct PopoverContentView: View {
         .frame(width: 380)
     }
 
+    @ViewBuilder
+    private var notificationBannerIfNeeded: some View {
+        switch notificationService.authorizationStatus {
+        case .denied:
+            notificationBanner(
+                icon: "bell.slash",
+                text: "Уведомления отключены",
+                button: "Настройки",
+                action: { NotificationService.openSystemSettings() }
+            )
+            Divider()
+        case .notDetermined:
+            notificationBanner(
+                icon: "bell",
+                text: "Разрешить уведомления?",
+                button: "Включить",
+                action: {
+                    Task { @MainActor in
+                        await notificationService.requestPermission()
+                    }
+                }
+            )
+            Divider()
+        default:
+            EmptyView()
+        }
+    }
+
+    private func notificationBanner(icon: String, text: String, button: String, action: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(.orange)
+            Text(text)
+                .font(.caption)
+                .foregroundColor(.orange)
+            Spacer()
+            Button(button) { action() }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundColor(.accentColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.12))
+    }
+
     private var headerView: some View {
         HStack {
             Image(systemName: "bell.badge")
@@ -53,7 +107,7 @@ struct PopoverContentView: View {
             Text("AI Obsidian Todo Bar")
                 .font(.headline)
             Spacer()
-            Text("\(taskStore.tasks.filter { !$0.isDone }.count) active")
+            Text("\(todayTasks.count) active")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

@@ -17,7 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         taskStore = TaskStore(config: config)
 
         notificationService = NotificationService()
-        notificationService.requestPermission()
+
+        Task { @MainActor in
+            await notificationService.checkAuthorization()
+            if notificationService.authorizationStatus == .notDetermined {
+                await notificationService.requestPermission()
+            }
+        }
 
         let aiService = AIService(config: config)
         let promptService = PromptService(config: config)

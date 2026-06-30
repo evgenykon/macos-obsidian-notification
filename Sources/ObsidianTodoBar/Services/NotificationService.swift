@@ -1,23 +1,54 @@
+import AppKit
 import Foundation
-import UserNotifications
+import Observation
+@preconcurrency import UserNotifications
 
+@MainActor
+@Observable
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
-    private let center = UNUserNotificationCenter.current()
+    var authorizationStatus: UNAuthorizationStatus = .notDetermined
+
+    private var center: UNUserNotificationCenter? {
+        guard Bundle.main.bundleIdentifier != nil else { return nil }
+        return UNUserNotificationCenter.current()
+    }
 
     override init() {
         super.init()
-        center.delegate = self
+        center?.delegate = self
     }
 
-    func requestPermission() {
-        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
-            if let error {
-                print("Notification permission error: \(error.localizedDescription)")
-            }
+    func checkAuthorization() async {
+        guard let center else {
+            print("Notif: no bundle, skipping auth check")
+            return
+        }
+        let settings = await center.notificationSettings()
+        authorizationStatus = settings.authorizationStatus
+        print("Notif: auth status = \(settings.authorizationStatus.rawValue)")
+    }
+
+    func requestPermission() async {
+        guard let center else { return }
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .notDetermined else {
+            authorizationStatus = settings.authorizationStatus
+            return
+        }
+
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound])
+            authorizationStatus = granted ? .authorized : .denied
+        } catch {
+            print("Notification permission error: \(error.localizedDescription)")
+            authorizationStatus = .denied
         }
     }
 
     func show(title: String, body: String) {
+        guard let center else { return }
+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -32,7 +63,14 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         center.add(request)
     }
 
-    func userNotificationCenter(
+    static func openSystemSettings() {
+        let urlString = "x-apple.systempreferences:com.apple.preference.notifications"
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void

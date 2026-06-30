@@ -40,6 +40,7 @@ final class MenuBarManager: NSObject {
         popover.contentViewController = NSHostingController(
             rootView: PopoverContentView(
                 taskStore: taskStore,
+                notificationService: notificationService,
                 onOpenSettings: { [weak self] in self?.openSettings() },
                 onReloadPrompt: { [weak self] in self?.reloadPrompt() },
                 onEditPrompt: { [weak self] in self?.editPrompt() },
@@ -48,45 +49,57 @@ final class MenuBarManager: NSObject {
             )
         )
 
-        setupMenu()
     }
 
-    private func setupMenu() {
-        let menu = NSMenu()
+    private var menu: NSMenu {
+        let m = NSMenu()
 
         let reloadItem = NSMenuItem(title: "Reload prompt", action: #selector(reloadPrompt), keyEquivalent: "r")
         reloadItem.target = self
-        menu.addItem(reloadItem)
+        m.addItem(reloadItem)
 
         let editItem = NSMenuItem(title: "Edit prompt in Obsidian", action: #selector(editPrompt), keyEquivalent: "e")
         editItem.target = self
-        menu.addItem(editItem)
+        m.addItem(editItem)
 
-        menu.addItem(.separator())
+        m.addItem(.separator())
 
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
-        menu.addItem(settingsItem)
+        m.addItem(settingsItem)
 
         let folderItem = NSMenuItem(title: "Open tasks folder", action: #selector(openTasksFolder), keyEquivalent: "o")
         folderItem.target = self
-        menu.addItem(folderItem)
+        m.addItem(folderItem)
 
-        menu.addItem(.separator())
+        m.addItem(.separator())
 
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
-        menu.addItem(quitItem)
+        m.addItem(quitItem)
 
-        statusItem.menu = menu
+        return m
     }
 
     @objc private func togglePopover() {
         guard let button = statusItem.button else { return }
 
+        let event = NSApp.currentEvent
+
+        // Right-click or option-click → show context menu
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.option) == true {
+            let m = menu
+            m.popUp(positioning: nil, at: CGPoint(x: 0, y: button.bounds.height + 5), in: button)
+            return
+        }
+
+        // Left-click → toggle popover
         if popover.isShown {
             popover.performClose(nil)
         } else {
+            Task { @MainActor in
+                await notificationService.checkAuthorization()
+            }
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.becomeKey()
         }

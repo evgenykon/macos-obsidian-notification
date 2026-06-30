@@ -57,5 +57,9 @@ cat > "$BUNDLE_DIR/Contents/Info.plist" << EOF
 EOF
 
 echo "Launching $APP_NAME..."
+
+# Register bundle with Launch Services (needed for Notification Center)
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$BUNDLE_DIR" 2>/dev/null || true
+
 "$BUNDLE_DIR/Contents/MacOS/$APP_NAME" &
 disown
