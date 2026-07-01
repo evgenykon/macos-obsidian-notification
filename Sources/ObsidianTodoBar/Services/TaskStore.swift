@@ -45,6 +45,7 @@ final class TaskStore {
             guard !notifiedTaskIDs.contains(task.id) else { return false }
             guard let effectiveDate = task.effectiveDate else { return false }
             guard effectiveDate <= now else { return false }
+            guard task.isMatchingWeekdayToday else { return false }
             // Only one notification per file
             guard !seenFiles.contains(task.filePath) else { return false }
             seenFiles.insert(task.filePath)
@@ -99,6 +100,28 @@ final class TaskStore {
 
         let fileURL = config.tasksFolderURL.appendingPathComponent("\(sanitized).md")
 
+        let content = buildTaskContent(from: data, dateFormatter: dateFormatter)
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+        refreshTasks()
+    }
+
+    func updateTask(from data: AddTaskData) throws {
+        guard let filePath = data.editingFilePath else { return }
+        let fileURL = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(filePath)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        let content = buildTaskContent(from: data, dateFormatter: dateFormatter)
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+
+        notifiedTaskIDs = Set(notifiedTaskIDs.filter { !$0.hasPrefix(filePath) })
+        refreshTasks()
+    }
+
+    private func buildTaskContent(from data: AddTaskData, dateFormatter: DateFormatter) -> String {
         var content = "---\n"
         content += "title: \(data.title)\n"
         content += "due: \(dateFormatter.string(from: data.dueDate))\n"
@@ -109,6 +132,10 @@ final class TaskStore {
         }
         if let recurring = data.recurring.asRecurring {
             content += "recurring: \(recurring.rawValue)\n"
+        }
+        if data.recurring == .daysOfWeek {
+            let days = data.selectedDays.intValues.map(String.init).joined(separator: ",")
+            content += "days: \(days)\n"
         }
         content += "---\n\n"
 
@@ -124,8 +151,7 @@ final class TaskStore {
             }
         }
 
-        try content.write(to: fileURL, atomically: true, encoding: .utf8)
-        refreshTasks()
+        return content
     }
 
     func addNotification(_ notification: AINotification) {

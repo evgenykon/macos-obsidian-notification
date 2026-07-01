@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskListView: View {
     let tasks: [TaskItem]
     let onMarkDone: (TaskItem) -> Void
+    let onEdit: (TaskItem) -> Void
 
     private func fileName(from path: String) -> String {
         let name = (path as NSString).lastPathComponent
@@ -73,7 +74,7 @@ struct TaskListView: View {
                                     .padding(.top, 4)
 
                                 ForEach(fileTasks) { task in
-                                    TaskRowView(task: task, onMarkDone: onMarkDone)
+                                    TaskRowView(task: task, onMarkDone: onMarkDone, onEdit: onEdit)
                                 }
                             }
                         }

@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskRowView: View {
     let task: TaskItem
     let onMarkDone: (TaskItem) -> Void
+    let onEdit: (TaskItem) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -40,6 +41,16 @@ struct TaskRowView: View {
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(4)
             }
+
+            Button {
+                onEdit(task)
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Редактировать")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)

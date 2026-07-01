@@ -6,12 +6,44 @@ struct AddTaskData {
     var hasTime: Bool = false
     var time: Date = Self.defaultTime
     var recurring: RecurringOption = .none
+    var selectedDays: Weekday = [.monday, .tuesday, .wednesday, .thursday, .friday]
     var checklistItems: [ChecklistItem] = [ChecklistItem(text: "")]
+    var editingFilePath: String?
+
+    init() {}
+
+    init(from task: TaskItem) {
+        title = task.title
+        dueDate = task.dueDate ?? Date()
+        if let timeStr = task.time {
+            hasTime = true
+            let parts = timeStr.split(separator: ":")
+            if parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) {
+                time = Calendar.current.date(bySettingHour: h, minute: m, second: 0, of: Date()) ?? Self.defaultTime
+            }
+        }
+        switch task.recurring {
+        case .daily:        recurring = .daily
+        case .daysOfWeek:   recurring = .daysOfWeek; selectedDays = task.selectedWeekdays
+        case .weekly:       recurring = .weekly
+        case .monthly:      recurring = .monthly
+        case .weekdays:     recurring = .daysOfWeek; selectedDays = [.monday, .tuesday, .wednesday, .thursday, .friday]
+        case nil:           recurring = .none
+        }
+        let lines = task.fileContent.split(separator: "\n").map(String.init)
+        checklistItems = lines
+            .filter { $0.hasPrefix("- [ ]") || $0.hasPrefix("- [x]") || $0.hasPrefix("- [X]") }
+            .map { ChecklistItem(text: String($0.dropFirst(5)).trimmingCharacters(in: .whitespaces)) }
+        if checklistItems.isEmpty {
+            checklistItems = [ChecklistItem(text: task.title)]
+        }
+        editingFilePath = task.filePath
+    }
 
     enum RecurringOption: String, CaseIterable, Sendable {
         case none = "Нет"
         case daily = "Ежедневно"
-        case weekdays = "По будням"
+        case daysOfWeek = "По дням недели"
         case weekly = "Еженедельно"
         case monthly = "Ежемесячно"
 
@@ -19,7 +51,7 @@ struct AddTaskData {
             switch self {
             case .none: nil
             case .daily: .daily
-            case .weekdays: .weekdays
+            case .daysOfWeek: .daysOfWeek
             case .weekly: .weekly
             case .monthly: .monthly
             }
@@ -37,9 +69,17 @@ struct AddTaskData {
 }
 
 struct AddTaskView: View {
-    @State private var data = AddTaskData()
+    @State private var data: AddTaskData
     let onSave: (AddTaskData) -> Void
     let onCancel: () -> Void
+
+    init(data: AddTaskData = AddTaskData(), onSave: @escaping (AddTaskData) -> Void, onCancel: @escaping () -> Void) {
+        _data = State(initialValue: data)
+        self.onSave = onSave
+        self.onCancel = onCancel
+    }
+
+    private var isEditing: Bool { data.editingFilePath != nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,7 +98,7 @@ struct AddTaskView: View {
 
             footer
         }
-        .frame(width: 500, height: 580)
+        .frame(width: 500, height: 620)
     }
 
     private var titleSection: some View {
@@ -124,8 +164,37 @@ struct AddTaskView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            if data.recurring == .daysOfWeek {
+                HStack(spacing: 4) {
+                    ForEach(weekdays, id: \.self) { day in
+                        Button {
+                            if data.selectedDays.contains(day) {
+                                data.selectedDays.remove(day)
+                                if data.selectedDays.isEmpty {
+                                    data.selectedDays.insert(day)
+                                }
+                            } else {
+                                data.selectedDays.insert(day)
+                            }
+                        } label: {
+                            Text(day.shortName)
+                                .font(.caption)
+                                .fontWeight(data.selectedDays.contains(day) ? .semibold : .regular)
+                                .frame(width: 32, height: 28)
+                                .background(data.selectedDays.contains(day) ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                                .foregroundColor(data.selectedDays.contains(day) ? .white : .primary)
+                                .cornerRadius(6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 4)
+            }
         }
     }
+
+    private let weekdays: [Weekday] = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
 
     private var checklistSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -185,7 +254,7 @@ struct AddTaskView: View {
 
                 Spacer()
 
-                Button("Создать задачу") {
+                Button(isEditing ? "Сохранить" : "Создать задачу") {
                     onSave(data)
                 }
                 .keyboardShortcut(.defaultAction)

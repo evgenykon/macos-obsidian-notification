@@ -4,6 +4,7 @@ struct Frontmatter {
     var dueDate: Date?
     var time: String?
     var recurring: Recurring?
+    var selectedWeekdays: Weekday = []
 }
 
 struct FrontmatterParser {
@@ -26,6 +27,7 @@ struct FrontmatterParser {
         var dueDate: Date?
         var time: String?
         var recurring: Recurring?
+        var selectedWeekdays = Weekday()
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -49,12 +51,22 @@ struct FrontmatterParser {
             case "time":
                 time = value
             case "recurring":
-                recurring = Recurring(rawValue: value.lowercased())
+                recurring = Recurring.allCases.first { $0.rawValue.lowercased() == value.lowercased() }
+            case "days":
+                let values = value
+                    .split(separator: ",")
+                    .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+                selectedWeekdays = Weekday.from(intValues: values)
             default:
                 break
             }
         }
 
-        return Frontmatter(dueDate: dueDate, time: time, recurring: recurring)
+        return Frontmatter(
+            dueDate: dueDate,
+            time: time,
+            recurring: recurring,
+            selectedWeekdays: selectedWeekdays
+        )
     }
 }

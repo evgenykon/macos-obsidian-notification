@@ -25,6 +25,7 @@ struct TaskParser {
                 dueDate: frontmatter.dueDate,
                 time: frontmatter.time,
                 recurring: frontmatter.recurring,
+                selectedWeekdays: frontmatter.selectedWeekdays,
                 filePath: filePath,
                 lineNumber: index + 1,
                 fileContent: content

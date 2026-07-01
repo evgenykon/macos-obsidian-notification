@@ -13,6 +13,7 @@ final class MenuBarManager: NSObject {
 
     private var settingsWindow: NSWindow?
     private var addTaskWindow: NSWindow?
+    private var editTaskWindow: NSWindow?
 
     let popoverWidth: CGFloat = 380
     let popoverHeight: CGFloat = 600
@@ -48,7 +49,8 @@ final class MenuBarManager: NSObject {
                 onOpenSettings: { [weak self] in self?.openSettings() },
                 onOpenHistory: { [weak self] in self?.openHistory() },
                 onMarkDone: { [weak self] task in self?.markDone(task: task) },
-                onAddTask: { [weak self] in self?.openAddTask() }
+                onAddTask: { [weak self] in self?.openAddTask() },
+                onEditTask: { [weak self] task in self?.openEditTask(task: task) }
             )
         )
     }
@@ -272,11 +274,52 @@ final class MenuBarManager: NSObject {
 
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Новая задача"
-        window.setContentSize(NSSize(width: 500, height: 580))
+        window.setContentSize(NSSize(width: 500, height: 620))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
 
         self.addTaskWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func openEditTask(task: TaskItem) {
+        if editTaskWindow?.isVisible == true {
+            editTaskWindow?.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let data = AddTaskData(from: task)
+        let hostingController = NSHostingController(
+            rootView: AddTaskView(
+                data: data,
+                onSave: { [weak self] data in
+                    guard let self else { return }
+                    do {
+                        try self.taskStore.updateTask(from: data)
+                        self.editTaskWindow?.orderOut(nil)
+                        self.editTaskWindow = nil
+                    } catch {
+                        let alert = NSAlert()
+                        alert.messageText = "Ошибка при обновлении задачи"
+                        alert.informativeText = error.localizedDescription
+                        alert.runModal()
+                    }
+                },
+                onCancel: { [weak self] in
+                    self?.editTaskWindow?.orderOut(nil)
+                    self?.editTaskWindow = nil
+                }
+            )
+        )
+
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Редактирование задачи"
+        window.setContentSize(NSSize(width: 500, height: 620))
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+
+        self.editTaskWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

@@ -1,10 +1,94 @@
 import Foundation
 
-enum Recurring: String, Sendable {
+enum Recurring: String, CaseIterable, Sendable {
     case daily
     case weekdays
     case weekly
     case monthly
+    case daysOfWeek
+}
+
+struct Weekday: OptionSet, Hashable, Sendable {
+    let rawValue: Int
+
+    static let monday    = Weekday(rawValue: 1 << 0)
+    static let tuesday   = Weekday(rawValue: 1 << 1)
+    static let wednesday = Weekday(rawValue: 1 << 2)
+    static let thursday  = Weekday(rawValue: 1 << 3)
+    static let friday    = Weekday(rawValue: 1 << 4)
+    static let saturday  = Weekday(rawValue: 1 << 5)
+    static let sunday    = Weekday(rawValue: 1 << 6)
+
+    static let weekdays: Weekday = [.monday, .tuesday, .wednesday, .thursday, .friday]
+    static let all: Weekday = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
+
+    var calendarWeekday: Int {
+        switch self {
+        case .monday:    return 2
+        case .tuesday:   return 3
+        case .wednesday: return 4
+        case .thursday:  return 5
+        case .friday:    return 6
+        case .saturday:  return 7
+        case .sunday:    return 1
+        default:         return 0
+        }
+    }
+
+    var shortName: String {
+        switch self {
+        case .monday:    return "Пн"
+        case .tuesday:   return "Вт"
+        case .wednesday: return "Ср"
+        case .thursday:  return "Чт"
+        case .friday:    return "Пт"
+        case .saturday:  return "Сб"
+        case .sunday:    return "Вс"
+        default:         return ""
+        }
+    }
+
+    static func from(calendarWeekday: Int) -> Weekday? {
+        switch calendarWeekday {
+        case 1: return .sunday
+        case 2: return .monday
+        case 3: return .tuesday
+        case 4: return .wednesday
+        case 5: return .thursday
+        case 6: return .friday
+        case 7: return .saturday
+        default: return nil
+        }
+    }
+
+    static func from(intValues: [Int]) -> Weekday {
+        var result: Weekday = []
+        for v in intValues {
+            switch v {
+            case 1: result.insert(.sunday)
+            case 2: result.insert(.monday)
+            case 3: result.insert(.tuesday)
+            case 4: result.insert(.wednesday)
+            case 5: result.insert(.thursday)
+            case 6: result.insert(.friday)
+            case 7: result.insert(.saturday)
+            default: break
+            }
+        }
+        return result
+    }
+
+    var intValues: [Int] {
+        var result: [Int] = []
+        if contains(.monday)    { result.append(2) }
+        if contains(.tuesday)   { result.append(3) }
+        if contains(.wednesday) { result.append(4) }
+        if contains(.thursday)  { result.append(5) }
+        if contains(.friday)    { result.append(6) }
+        if contains(.saturday)  { result.append(7) }
+        if contains(.sunday)    { result.append(1) }
+        return result
+    }
 }
 
 struct TaskItem: Identifiable, Sendable {
@@ -14,6 +98,7 @@ struct TaskItem: Identifiable, Sendable {
     var dueDate: Date?
     var time: String?
     var recurring: Recurring?
+    var selectedWeekdays: Weekday
     var filePath: String
     var lineNumber: Int
     var fileContent: String
@@ -24,6 +109,7 @@ struct TaskItem: Identifiable, Sendable {
         dueDate: Date? = nil,
         time: String? = nil,
         recurring: Recurring? = nil,
+        selectedWeekdays: Weekday = [],
         filePath: String,
         lineNumber: Int,
         fileContent: String = ""
@@ -34,6 +120,7 @@ struct TaskItem: Identifiable, Sendable {
         self.dueDate = dueDate
         self.time = time
         self.recurring = recurring
+        self.selectedWeekdays = selectedWeekdays
         self.filePath = filePath
         self.lineNumber = lineNumber
         self.fileContent = fileContent
@@ -55,17 +142,25 @@ struct TaskItem: Identifiable, Sendable {
 
     var isOverdue: Bool {
         guard let effectiveDate else { return false }
-        return effectiveDate < Date() && !isDone
+        return effectiveDate < Date() && !isDone && isMatchingWeekdayToday
     }
 
     var isDueToday: Bool {
         guard let dueDate else { return false }
-        return Calendar.current.isDateInToday(dueDate)
+        guard Calendar.current.isDateInToday(dueDate) else { return false }
+        return isMatchingWeekdayToday
     }
 
     var isDueTomorrow: Bool {
         guard let dueDate else { return false }
         return Calendar.current.isDateInTomorrow(dueDate)
+    }
+
+    var isMatchingWeekdayToday: Bool {
+        guard recurring == .daysOfWeek else { return true }
+        let today = Calendar.current.component(.weekday, from: Date())
+        guard let weekday = Weekday.from(calendarWeekday: today) else { return false }
+        return selectedWeekdays.contains(weekday)
     }
 
     var checkboxPattern: String {
@@ -88,6 +183,17 @@ struct TaskItem: Identifiable, Sendable {
                 return calendar.date(byAdding: .day, value: 1, to: next)
             }
             return next
+        case .daysOfWeek:
+            let days = selectedWeekdays.isEmpty ? Weekday.weekdays : selectedWeekdays
+            var candidate = calendar.date(byAdding: .day, value: 1, to: dueDate)!
+            for _ in 0..<7 {
+                let wd = calendar.component(.weekday, from: candidate)
+                if let weekday = Weekday.from(calendarWeekday: wd), days.contains(weekday) {
+                    return candidate
+                }
+                candidate = calendar.date(byAdding: .day, value: 1, to: candidate)!
+            }
+            return nil
         case .weekly:
             return calendar.date(byAdding: .day, value: 7, to: dueDate)
         case .monthly:
