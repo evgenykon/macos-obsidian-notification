@@ -120,10 +120,10 @@ struct SettingsView: View {
 
     private func labeled(_ label: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            content()
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
+            content()
         }
     }
 }
