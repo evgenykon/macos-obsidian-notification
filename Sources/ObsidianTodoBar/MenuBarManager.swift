@@ -233,7 +233,7 @@ final class MenuBarManager: NSObject {
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Settings"
-        window.setContentSize(NSSize(width: 480, height: 440))
+        window.setContentSize(NSSize(width: 480, height: 520))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
 

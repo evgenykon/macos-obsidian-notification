@@ -42,15 +42,27 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 section("Obsidian Vault") {
-                    TextField("Vault path", text: $vaultPath)
-                    TextField("Tasks folder", text: $tasksFolder)
-                    TextField("History folder", text: $historyFolder)
-                    TextField("Archive folder", text: $archiveFolder)
+                    labeled("Путь к хранилищу Obsidian") {
+                        TextField("Vault path", text: $vaultPath)
+                    }
+                    labeled("Папка с задачами") {
+                        TextField("Tasks folder", text: $tasksFolder)
+                    }
+                    labeled("Папка для истории уведомлений") {
+                        TextField("History folder", text: $historyFolder)
+                    }
+                    labeled("Куда перемещать выполненные задачи") {
+                        TextField("Archive folder", text: $archiveFolder)
+                    }
                 }
 
                 section("OpenRouter AI") {
-                    SecureField("API Key", text: $apiKey)
-                    TextField("Model", text: $model)
+                    labeled("Ключ API (sk-or-...)") {
+                        SecureField("API Key", text: $apiKey)
+                    }
+                    labeled("Модель AI (openai/gpt-4o-mini)") {
+                        TextField("Model", text: $model)
+                    }
                 }
 
                 section("Notification window") {
@@ -103,6 +115,15 @@ struct SettingsView: View {
             VStack(spacing: 6) {
                 content()
             }
+        }
+    }
+
+    private func labeled(_ label: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            content()
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 }
