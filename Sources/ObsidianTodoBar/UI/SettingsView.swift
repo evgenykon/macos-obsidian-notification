@@ -39,45 +39,39 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Obsidian Vault") {
-                TextField("Vault path", text: $vaultPath)
-                    .font(.body)
-                TextField("Tasks folder", text: $tasksFolder)
-                    .font(.body)
-                TextField("History folder", text: $historyFolder)
-                    .font(.body)
-                TextField("Archive folder", text: $archiveFolder)
-                    .font(.body)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                section("Obsidian Vault") {
+                    TextField("Vault path", text: $vaultPath)
+                    TextField("Tasks folder", text: $tasksFolder)
+                    TextField("History folder", text: $historyFolder)
+                    TextField("Archive folder", text: $archiveFolder)
+                }
 
-            Section("OpenRouter AI") {
-                SecureField("API Key", text: $apiKey)
-                    .font(.body)
-                TextField("Model", text: $model)
-                    .font(.body)
-            }
+                section("OpenRouter AI") {
+                    SecureField("API Key", text: $apiKey)
+                    TextField("Model", text: $model)
+                }
 
-            Section("Notification window") {
-                Stepper("Start hour: \(startHour):00", value: $startHour, in: 0...23)
-                Stepper("End hour: \(endHour):00", value: $endHour, in: 1...24)
-                Text("Notifications only between \(startHour):00 and \(endHour):00")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+                section("Notification window") {
+                    Stepper("Start hour: \(startHour):00", value: $startHour, in: 0...23)
+                    Stepper("End hour: \(endHour):00", value: $endHour, in: 1...24)
+                    Text("Notifications only between \(startHour):00 and \(endHour):00")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
-            Section("Debug") {
-                HStack(spacing: 12) {
-                    Button("🔔 Test notification") {
-                        onTestNotification()
-                    }
-                    Button("▶ Force notify now") {
-                        onForceNotify()
+                section("Debug") {
+                    HStack(spacing: 12) {
+                        Button("🔔 Test notification") {
+                            onTestNotification()
+                        }
+                        Button("▶ Force notify now") {
+                            onForceNotify()
+                        }
                     }
                 }
-            }
 
-            Section {
                 HStack {
                     Spacer()
                     Button("Save") {
@@ -97,8 +91,18 @@ struct SettingsView: View {
                     .keyboardShortcut(.defaultAction)
                 }
             }
+            .padding(20)
         }
-        .padding()
         .frame(width: 460)
+    }
+
+    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            VStack(spacing: 6) {
+                content()
+            }
+        }
     }
 }
