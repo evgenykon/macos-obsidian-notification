@@ -39,71 +39,78 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                section("Obsidian Vault") {
-                    labeled("Путь к хранилищу Obsidian") {
-                        TextField("Vault path", text: $vaultPath)
-                    }
-                    labeled("Папка с задачами") {
-                        TextField("Tasks folder", text: $tasksFolder)
-                    }
-                    labeled("Папка для истории уведомлений") {
-                        TextField("History folder", text: $historyFolder)
-                    }
-                    labeled("Куда перемещать выполненные задачи") {
-                        TextField("Archive folder", text: $archiveFolder)
-                    }
-                }
-
-                section("OpenRouter AI") {
-                    labeled("Ключ API (sk-or-...)") {
-                        SecureField("API Key", text: $apiKey)
-                    }
-                    labeled("Модель AI (openai/gpt-4o-mini)") {
-                        TextField("Model", text: $model)
-                    }
-                }
-
-                section("Notification window") {
-                    Stepper("Start hour: \(startHour):00", value: $startHour, in: 0...23)
-                    Stepper("End hour: \(endHour):00", value: $endHour, in: 1...24)
-                    Text("Notifications only between \(startHour):00 and \(endHour):00")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                section("Debug") {
-                    HStack(spacing: 12) {
-                        Button("🔔 Test notification") {
-                            onTestNotification()
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    section("Obsidian Vault") {
+                        labeled("Путь к хранилищу Obsidian") {
+                            TextField("Vault path", text: $vaultPath)
                         }
-                        Button("▶ Force notify now") {
-                            onForceNotify()
+                        labeled("Папка с задачами") {
+                            TextField("Tasks folder", text: $tasksFolder)
+                        }
+                        labeled("Папка для истории уведомлений") {
+                            TextField("History folder", text: $historyFolder)
+                        }
+                        labeled("Куда перемещать выполненные задачи") {
+                            TextField("Archive folder", text: $archiveFolder)
                         }
                     }
-                }
 
-                HStack {
-                    Spacer()
-                    Button("Save") {
-                        var newConfig = config
-                        newConfig.vaultPath = vaultPath
-                        newConfig.tasksFolder = tasksFolder
-                        newConfig.historyFolder = historyFolder
-                        newConfig.archiveFolder = archiveFolder
-                        newConfig.apiKey = apiKey
-                        newConfig.model = model
-                        newConfig.notificationsStartHour = startHour
-                        newConfig.notificationsEndHour = endHour
-                        newConfig.save()
-                        onSave(newConfig)
-                        onClose()
+                    section("OpenRouter AI") {
+                        labeled("Ключ API (sk-or-...)") {
+                            SecureField("API Key", text: $apiKey)
+                        }
+                        labeled("Модель AI (openai/gpt-4o-mini)") {
+                            TextField("Model", text: $model)
+                        }
                     }
-                    .keyboardShortcut(.defaultAction)
+
+                    section("Notification window") {
+                        Stepper("Start hour: \(startHour):00", value: $startHour, in: 0...23)
+                        Stepper("End hour: \(endHour):00", value: $endHour, in: 1...24)
+                        Text("Notifications only between \(startHour):00 and \(endHour):00")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    section("Debug") {
+                        HStack(spacing: 12) {
+                            Button("🔔 Test notification") {
+                                onTestNotification()
+                            }
+                            Button("▶ Force notify now") {
+                                onForceNotify()
+                            }
+                        }
+                    }
                 }
+                .padding(20)
             }
-            .padding(20)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("Save") {
+                    var newConfig = config
+                    newConfig.vaultPath = vaultPath
+                    newConfig.tasksFolder = tasksFolder
+                    newConfig.historyFolder = historyFolder
+                    newConfig.archiveFolder = archiveFolder
+                    newConfig.apiKey = apiKey
+                    newConfig.model = model
+                    newConfig.notificationsStartHour = startHour
+                    newConfig.notificationsEndHour = endHour
+                    newConfig.save()
+                    onSave(newConfig)
+                    onClose()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(.regularMaterial)
         }
         .frame(width: 460)
     }
