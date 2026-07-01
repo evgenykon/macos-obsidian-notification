@@ -46,9 +46,6 @@ final class MenuBarManager: NSObject {
                 taskStore: taskStore,
                 notificationService: notificationService,
                 onOpenSettings: { [weak self] in self?.openSettings() },
-                onReloadPrompt: { [weak self] in self?.reloadPrompt() },
-                onEditPrompt: { [weak self] in self?.editPrompt() },
-                onOpenTasksFolder: { [weak self] in self?.openTasksFolder() },
                 onOpenHistory: { [weak self] in self?.openHistory() },
                 onMarkDone: { [weak self] task in self?.markDone(task: task) },
                 onAddTask: { [weak self] in self?.openAddTask() }

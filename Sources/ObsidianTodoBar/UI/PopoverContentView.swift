@@ -4,9 +4,6 @@ struct PopoverContentView: View {
     @Bindable var taskStore: TaskStore
     let notificationService: NotificationService
     let onOpenSettings: () -> Void
-    let onReloadPrompt: () -> Void
-    let onEditPrompt: () -> Void
-    let onOpenTasksFolder: () -> Void
     let onOpenHistory: () -> Void
     let onMarkDone: (TaskItem) -> Void
     let onAddTask: () -> Void
@@ -149,33 +146,8 @@ struct PopoverContentView: View {
     }
 
     private var footerView: some View {
-        HStack(spacing: 0) {
-            Button("Reload prompt") {
-                onReloadPrompt()
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundColor(.accentColor)
-            .padding(.horizontal, 8)
-
-            Button("Edit prompt") {
-                onEditPrompt()
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundColor(.accentColor)
-            .padding(.horizontal, 8)
-
+        HStack {
             Spacer()
-
-            Button("Open folder") {
-                onOpenTasksFolder()
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundColor(.accentColor)
-            .padding(.horizontal, 8)
-
             Button {
                 onOpenSettings()
             } label: {
@@ -184,9 +156,8 @@ struct PopoverContentView: View {
             }
             .buttonStyle(.plain)
             .foregroundColor(.secondary)
-            .padding(.horizontal, 8)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
     }
 }
