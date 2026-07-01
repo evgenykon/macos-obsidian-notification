@@ -60,6 +60,16 @@ final class MenuBarManager: NSObject {
         refreshItem.target = self
         m.addItem(refreshItem)
 
+        let addTaskItem = NSMenuItem(title: "✏️ Add task...", action: #selector(openAddTask), keyEquivalent: "n")
+        addTaskItem.target = self
+        m.addItem(addTaskItem)
+
+        let folderItem = NSMenuItem(title: "Open vault in Obsidian", action: #selector(openTasksFolder), keyEquivalent: "o")
+        folderItem.target = self
+        m.addItem(folderItem)
+
+        m.addItem(.separator())
+
         let reloadItem = NSMenuItem(title: "Reload prompt", action: #selector(reloadPrompt), keyEquivalent: "r")
         reloadItem.target = self
         m.addItem(reloadItem)
@@ -70,27 +80,9 @@ final class MenuBarManager: NSObject {
 
         m.addItem(.separator())
 
-        let addTaskItem = NSMenuItem(title: "✏️ Add task...", action: #selector(openAddTask), keyEquivalent: "n")
-        addTaskItem.target = self
-        m.addItem(addTaskItem)
-
-        let folderItem = NSMenuItem(title: "Open tasks folder", action: #selector(openTasksFolder), keyEquivalent: "o")
-        folderItem.target = self
-        m.addItem(folderItem)
-
-        m.addItem(.separator())
-
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         m.addItem(settingsItem)
-
-        let testItem = NSMenuItem(title: "🔔 Test notification", action: #selector(testNotification), keyEquivalent: "t")
-        testItem.target = self
-        m.addItem(testItem)
-
-        let forceItem = NSMenuItem(title: "▶ Force notify now", action: #selector(forceNotify), keyEquivalent: "f")
-        forceItem.target = self
-        m.addItem(forceItem)
 
         m.addItem(.separator())
 
@@ -229,13 +221,19 @@ final class MenuBarManager: NSObject {
             onClose: { [weak self] in
                 self?.settingsWindow?.orderOut(nil)
                 self?.settingsWindow = nil
+            },
+            onTestNotification: { [weak self] in
+                self?.testNotification()
+            },
+            onForceNotify: { [weak self] in
+                self?.forceNotify()
             }
         )
 
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Settings"
-        window.setContentSize(NSSize(width: 480, height: 360))
+        window.setContentSize(NSSize(width: 480, height: 440))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
 
@@ -284,7 +282,10 @@ final class MenuBarManager: NSObject {
     }
 
     @objc private func openTasksFolder() {
-        let url = config.tasksFolderURL
+        let vaultName = (config.vaultPath as NSString).lastPathComponent
+        guard let encodedVault = vaultName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "obsidian://open?vault=\(encodedVault)")
+        else { return }
         NSWorkspace.shared.open(url)
     }
 

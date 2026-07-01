@@ -12,12 +12,22 @@ struct SettingsView: View {
 
     let onSave: (AppConfig) -> Void
     let onClose: () -> Void
+    let onTestNotification: () -> Void
+    let onForceNotify: () -> Void
     let config: AppConfig
 
-    init(config: AppConfig, onSave: @escaping (AppConfig) -> Void, onClose: @escaping () -> Void) {
+    init(
+        config: AppConfig,
+        onSave: @escaping (AppConfig) -> Void,
+        onClose: @escaping () -> Void,
+        onTestNotification: @escaping () -> Void,
+        onForceNotify: @escaping () -> Void
+    ) {
         self.config = config
         self.onSave = onSave
         self.onClose = onClose
+        self.onTestNotification = onTestNotification
+        self.onForceNotify = onForceNotify
         _vaultPath = State(initialValue: config.vaultPath)
         _tasksFolder = State(initialValue: config.tasksFolder)
         _historyFolder = State(initialValue: config.historyFolder)
@@ -54,6 +64,17 @@ struct SettingsView: View {
                 Text("Notifications only between \(startHour):00 and \(endHour):00")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+
+            Section("Debug") {
+                HStack(spacing: 12) {
+                    Button("🔔 Test notification") {
+                        onTestNotification()
+                    }
+                    Button("▶ Force notify now") {
+                        onForceNotify()
+                    }
+                }
             }
 
             Section {
