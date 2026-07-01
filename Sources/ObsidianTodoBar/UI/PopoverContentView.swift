@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PopoverContentView: View {
-    let taskStore: TaskStore
+    @Bindable var taskStore: TaskStore
     let notificationService: NotificationService
     let onOpenSettings: () -> Void
     let onReloadPrompt: () -> Void
@@ -9,6 +9,7 @@ struct PopoverContentView: View {
     let onOpenTasksFolder: () -> Void
     let onOpenHistory: () -> Void
     let onMarkDone: (TaskItem) -> Void
+    let onAddTask: () -> Void
 
     private var todayTasks: [TaskItem] {
         taskStore.tasks.filter { !$0.isDone && ($0.isOverdue || $0.isDueToday) }
@@ -133,9 +134,15 @@ struct PopoverContentView: View {
             Text("AI Obsidian Todo Bar")
                 .font(.headline)
             Spacer()
-            Text("\(todayTasks.count) active")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            Button {
+                onAddTask()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.accentColor)
+            .help("Добавить задачу")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

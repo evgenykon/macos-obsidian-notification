@@ -12,6 +12,7 @@ final class MenuBarManager: NSObject {
     private var promptService: PromptService!
 
     private var settingsWindow: NSWindow?
+    private var addTaskWindow: NSWindow?
 
     let popoverWidth: CGFloat = 380
     let popoverHeight: CGFloat = 600
@@ -49,7 +50,8 @@ final class MenuBarManager: NSObject {
                 onEditPrompt: { [weak self] in self?.editPrompt() },
                 onOpenTasksFolder: { [weak self] in self?.openTasksFolder() },
                 onOpenHistory: { [weak self] in self?.openHistory() },
-                onMarkDone: { [weak self] task in self?.markDone(task: task) }
+                onMarkDone: { [weak self] task in self?.markDone(task: task) },
+                onAddTask: { [weak self] in self?.openAddTask() }
             )
         )
     }
@@ -70,6 +72,10 @@ final class MenuBarManager: NSObject {
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         m.addItem(settingsItem)
+
+        let addTaskItem = NSMenuItem(title: "✏️ Add task...", action: #selector(openAddTask), keyEquivalent: "n")
+        addTaskItem.target = self
+        m.addItem(addTaskItem)
 
         let folderItem = NSMenuItem(title: "Open tasks folder", action: #selector(openTasksFolder), keyEquivalent: "o")
         folderItem.target = self
@@ -237,6 +243,45 @@ final class MenuBarManager: NSObject {
         window.isReleasedWhenClosed = false
 
         self.settingsWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openAddTask() {
+        if addTaskWindow?.isVisible == true {
+            addTaskWindow?.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let hostingController = NSHostingController(
+            rootView: AddTaskView(
+                onSave: { [weak self] data in
+                    guard let self else { return }
+                    do {
+                        try self.taskStore.createTask(from: data)
+                        self.addTaskWindow?.orderOut(nil)
+                        self.addTaskWindow = nil
+                    } catch {
+                        let alert = NSAlert()
+                        alert.messageText = "Ошибка при создании задачи"
+                        alert.informativeText = error.localizedDescription
+                        alert.runModal()
+                    }
+                },
+                onCancel: { [weak self] in
+                    self?.addTaskWindow?.orderOut(nil)
+                    self?.addTaskWindow = nil
+                }
+            )
+        )
+
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Новая задача"
+        window.setContentSize(NSSize(width: 460, height: 520))
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+
+        self.addTaskWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

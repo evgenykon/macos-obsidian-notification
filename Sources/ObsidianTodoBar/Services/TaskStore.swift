@@ -88,6 +88,46 @@ final class TaskStore {
         refreshTasks()
     }
 
+    func createTask(from data: AddTaskData) throws {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        let sanitized = data.title
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+
+        let fileURL = config.tasksFolderURL.appendingPathComponent("\(sanitized).md")
+
+        var content = "---\n"
+        content += "title: \(data.title)\n"
+        content += "due: \(dateFormatter.string(from: data.dueDate))\n"
+        if data.hasTime {
+            let tf = DateFormatter()
+            tf.dateFormat = "HH:mm"
+            content += "time: \(tf.string(from: data.time))\n"
+        }
+        if let recurring = data.recurring.asRecurring {
+            content += "recurring: \(recurring.rawValue)\n"
+        }
+        content += "---\n\n"
+
+        let items = data.checklistItems
+            .map { $0.text.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        if items.isEmpty {
+            content += "- [ ] \(data.title)\n"
+        } else {
+            for item in items {
+                content += "- [ ] \(item)\n"
+            }
+        }
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+        refreshTasks()
+    }
+
     func addNotification(_ notification: AINotification) {
         recentNotifications.insert(notification, at: 0)
         if recentNotifications.count > 50 {

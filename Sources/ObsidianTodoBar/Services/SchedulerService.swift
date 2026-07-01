@@ -30,7 +30,11 @@ final class SchedulerService {
 
     func start() {
         taskStore.refreshTasks()
-        tick()
+
+        // Delay first tick to next runloop so AppKit/SwiftUI finishes setup
+        DispatchQueue.main.async { [weak self] in
+            self?.tick()
+        }
 
         timer = Timer.scheduledTimer(withTimeInterval: config.checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -50,17 +54,29 @@ final class SchedulerService {
 
         taskStore.refreshTasks()
 
+        // Advance recurring tasks that need it:
+        //   1. Done tasks — reset checkbox and move to next date
+        //   2. Tasks whose due date passed (yesterday or earlier) — catch up to today
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        var advancedFiles = Set<String>()
+        for task in taskStore.tasks where task.recurring != nil && !advancedFiles.contains(task.filePath) {
+            guard let dueDate = task.dueDate else { continue }
+            if task.isDone || dueDate < todayStart {
+                try? taskStore.advanceRecurringTask(task)
+                advancedFiles.insert(task.filePath)
+            }
+        }
+
+        taskStore.refreshTasks()
+
         let dueTasks = taskStore.tasksNeedingNotification()
 
-        // Eagerly mark tasks as done to prevent double-fire on next tick
+        // Mark siblings as notified to prevent double-fire on next tick.
+        // Do NOT advance recurring tasks here — they stay on today's date so
+        // the popover continues showing them after the notification fires.
         for task in dueTasks {
-            // Mark all siblings in the same file as notified too
             for sibling in taskStore.tasks where sibling.filePath == task.filePath {
-                if sibling.recurring != nil {
-                    try? taskStore.advanceRecurringTask(sibling)
-                } else {
-                    taskStore.markNotified(sibling)
-                }
+                taskStore.markNotified(sibling)
             }
         }
 

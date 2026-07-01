@@ -46,6 +46,11 @@ struct HistoryService {
     }
 
     private func createHistoryFile(at url: URL, entry: String) throws {
+        let parent = url.deletingLastPathComponent()
+        if !FileManager.default.fileExists(atPath: parent.path) {
+            try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        }
+
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "ru_RU")
         dateFormatter.dateFormat = "EEEE, d MMMM yyyy"
