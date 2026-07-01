@@ -56,19 +56,11 @@ final class MenuBarManager: NSObject {
     private func buildMenu() -> NSMenu {
         let m = NSMenu()
 
-        let reloadItem = NSMenuItem(title: "Reload prompt", action: #selector(reloadPrompt), keyEquivalent: "r")
-        reloadItem.target = self
-        m.addItem(reloadItem)
-
-        let editItem = NSMenuItem(title: "Edit prompt in Obsidian", action: #selector(editPrompt), keyEquivalent: "e")
-        editItem.target = self
-        m.addItem(editItem)
+        let refreshItem = NSMenuItem(title: "🔄 Refresh tasks", action: #selector(refreshTasks), keyEquivalent: "")
+        refreshItem.target = self
+        m.addItem(refreshItem)
 
         m.addItem(.separator())
-
-        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
-        settingsItem.target = self
-        m.addItem(settingsItem)
 
         let addTaskItem = NSMenuItem(title: "✏️ Add task...", action: #selector(openAddTask), keyEquivalent: "n")
         addTaskItem.target = self
@@ -80,19 +72,19 @@ final class MenuBarManager: NSObject {
 
         m.addItem(.separator())
 
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        m.addItem(settingsItem)
+
         let testItem = NSMenuItem(title: "🔔 Test notification", action: #selector(testNotification), keyEquivalent: "t")
         testItem.target = self
         m.addItem(testItem)
 
-        m.addItem(.separator())
-
-        let refreshItem = NSMenuItem(title: "🔄 Refresh tasks", action: #selector(refreshTasks), keyEquivalent: "")
-        refreshItem.target = self
-        m.addItem(refreshItem)
-
         let forceItem = NSMenuItem(title: "▶ Force notify now", action: #selector(forceNotify), keyEquivalent: "f")
         forceItem.target = self
         m.addItem(forceItem)
+
+        m.addItem(.separator())
 
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
