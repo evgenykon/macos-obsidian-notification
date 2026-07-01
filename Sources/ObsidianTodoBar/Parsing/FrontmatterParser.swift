@@ -53,10 +53,18 @@ struct FrontmatterParser {
             case "recurring":
                 recurring = Recurring.allCases.first { $0.rawValue.lowercased() == value.lowercased() }
             case "days":
-                let values = value
-                    .split(separator: ",")
-                    .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-                selectedWeekdays = Weekday.from(intValues: values)
+                let parts = value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                // Try numeric format first (backward compat), then names
+                let ints = parts.compactMap { Int($0) }
+                if ints.count == parts.count {
+                    selectedWeekdays = Weekday.from(intValues: ints)
+                } else {
+                    for part in parts {
+                        if let day = Weekday.fromFileFriendly(part) {
+                            selectedWeekdays.insert(day)
+                        }
+                    }
+                }
             default:
                 break
             }

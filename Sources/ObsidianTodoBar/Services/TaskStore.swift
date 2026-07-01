@@ -134,7 +134,7 @@ final class TaskStore {
             content += "recurring: \(recurring.rawValue)\n"
         }
         if data.recurring == .daysOfWeek {
-            let days = data.selectedDays.intValues.map(String.init).joined(separator: ",")
+            let days = data.selectedDays.fileFriendlyValues.joined(separator: ",")
             content += "days: \(days)\n"
         }
         content += "---\n\n"

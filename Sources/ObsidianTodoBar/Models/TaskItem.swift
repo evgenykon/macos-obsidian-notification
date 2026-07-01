@@ -35,6 +35,19 @@ struct Weekday: OptionSet, Hashable, Sendable {
         }
     }
 
+    var fileFriendlyName: String {
+        switch self {
+        case .monday:    return "mon"
+        case .tuesday:   return "tue"
+        case .wednesday: return "wed"
+        case .thursday:  return "thu"
+        case .friday:    return "fri"
+        case .saturday:  return "sat"
+        case .sunday:    return "sun"
+        default:         return ""
+        }
+    }
+
     var shortName: String {
         switch self {
         case .monday:    return "Пн"
@@ -61,6 +74,19 @@ struct Weekday: OptionSet, Hashable, Sendable {
         }
     }
 
+    static func fromFileFriendly(_ name: String) -> Weekday? {
+        switch name.lowercased() {
+        case "mon": return .monday
+        case "tue": return .tuesday
+        case "wed": return .wednesday
+        case "thu": return .thursday
+        case "fri": return .friday
+        case "sat": return .saturday
+        case "sun": return .sunday
+        default: return nil
+        }
+    }
+
     static func from(intValues: [Int]) -> Weekday {
         var result: Weekday = []
         for v in intValues {
@@ -78,15 +104,15 @@ struct Weekday: OptionSet, Hashable, Sendable {
         return result
     }
 
-    var intValues: [Int] {
-        var result: [Int] = []
-        if contains(.monday)    { result.append(2) }
-        if contains(.tuesday)   { result.append(3) }
-        if contains(.wednesday) { result.append(4) }
-        if contains(.thursday)  { result.append(5) }
-        if contains(.friday)    { result.append(6) }
-        if contains(.saturday)  { result.append(7) }
-        if contains(.sunday)    { result.append(1) }
+    var fileFriendlyValues: [String] {
+        var result: [String] = []
+        if contains(.monday)    { result.append("mon") }
+        if contains(.tuesday)   { result.append("tue") }
+        if contains(.wednesday) { result.append("wed") }
+        if contains(.thursday)  { result.append("thu") }
+        if contains(.friday)    { result.append("fri") }
+        if contains(.saturday)  { result.append("sat") }
+        if contains(.sunday)    { result.append("sun") }
         return result
     }
 }
