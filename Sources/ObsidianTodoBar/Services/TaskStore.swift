@@ -33,6 +33,10 @@ final class TaskStore {
             errorMessage = error.localizedDescription
         }
 
+        // Prune orphaned notified IDs (tasks deleted externally)
+        let validIDs = Set(tasks.map(\.id))
+        notifiedTaskIDs = notifiedTaskIDs.intersection(validIDs)
+
         isLoading = false
     }
 
@@ -156,8 +160,8 @@ final class TaskStore {
 
     func addNotification(_ notification: AINotification) {
         recentNotifications.insert(notification, at: 0)
-        if recentNotifications.count > 50 {
-            recentNotifications = Array(recentNotifications.prefix(50))
+        if recentNotifications.count > 10 {
+                recentNotifications = Array(recentNotifications.prefix(10))
         }
     }
 
@@ -186,6 +190,13 @@ final class TaskStore {
 
         // Archive if all tasks in this file are done
         try archiveIfAllDone(fileURL: fileURL, vaultRelativePath: task.filePath)
+    }
+
+    func deleteTask(_ task: TaskItem) throws {
+        let fileURL = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(task.filePath)
+        try FileManager.default.removeItem(at: fileURL)
+        notifiedTaskIDs = Set(notifiedTaskIDs.filter { !$0.hasPrefix(task.filePath) })
+        refreshTasks()
     }
 
     private func archiveIfAllDone(fileURL: URL, vaultRelativePath: String) throws {

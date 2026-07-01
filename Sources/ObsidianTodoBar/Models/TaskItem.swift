@@ -127,7 +127,6 @@ struct TaskItem: Identifiable, Sendable {
     var selectedWeekdays: Weekday
     var filePath: String
     var lineNumber: Int
-    var fileContent: String
 
     init(
         title: String,
@@ -137,8 +136,7 @@ struct TaskItem: Identifiable, Sendable {
         recurring: Recurring? = nil,
         selectedWeekdays: Weekday = [],
         filePath: String,
-        lineNumber: Int,
-        fileContent: String = ""
+        lineNumber: Int
     ) {
         self.id = "\(filePath):\(lineNumber)"
         self.title = title
@@ -149,7 +147,6 @@ struct TaskItem: Identifiable, Sendable {
         self.selectedWeekdays = selectedWeekdays
         self.filePath = filePath
         self.lineNumber = lineNumber
-        self.fileContent = fileContent
     }
 
     var effectiveDate: Date? {

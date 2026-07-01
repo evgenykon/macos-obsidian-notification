@@ -52,41 +52,44 @@ final class SchedulerService {
         guard !isProcessing else { return }
         isProcessing = true
 
-        taskStore.refreshTasks()
+        autoreleasepool {
+            taskStore.refreshTasks()
 
-        // Advance recurring tasks that need it:
-        //   1. Done tasks — reset checkbox and move to next date
-        //   2. Tasks whose due date passed (yesterday or earlier) — catch up to today
-        let todayStart = Calendar.current.startOfDay(for: Date())
-        var advancedFiles = Set<String>()
-        for task in taskStore.tasks where task.recurring != nil && !advancedFiles.contains(task.filePath) {
-            guard let dueDate = task.dueDate else { continue }
-            if task.isDone || dueDate < todayStart {
-                try? taskStore.advanceRecurringTask(task)
-                advancedFiles.insert(task.filePath)
+            // Advance recurring tasks that need it:
+            //   1. Done tasks — reset checkbox and move to next date
+            //   2. Tasks whose due date passed (yesterday or earlier) — catch up to today
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            var advancedFiles = Set<String>()
+            for task in taskStore.tasks where task.recurring != nil && !advancedFiles.contains(task.filePath) {
+                guard let dueDate = task.dueDate else { continue }
+                if task.isDone || dueDate < todayStart {
+                    try? taskStore.advanceRecurringTask(task)
+                    advancedFiles.insert(task.filePath)
+                }
+            }
+
+            taskStore.refreshTasks()
+
+            let dueTasks = taskStore.tasksNeedingNotification()
+
+            // Mark siblings as notified to prevent double-fire on next tick.
+            // Do NOT advance recurring tasks here — they stay on today's date so
+            // the popover continues showing them after the notification fires.
+            for task in dueTasks {
+                for sibling in taskStore.tasks where sibling.filePath == task.filePath {
+                    taskStore.markNotified(sibling)
+                }
+            }
+
+            // Now process notifications asynchronously
+            for task in dueTasks {
+                Task { [weak self] in
+                    await self?.processNotification(for: task)
+                }
             }
         }
 
-        taskStore.refreshTasks()
-
-        let dueTasks = taskStore.tasksNeedingNotification()
-
-        // Mark siblings as notified to prevent double-fire on next tick.
-        // Do NOT advance recurring tasks here — they stay on today's date so
-        // the popover continues showing them after the notification fires.
-        for task in dueTasks {
-            for sibling in taskStore.tasks where sibling.filePath == task.filePath {
-                taskStore.markNotified(sibling)
-            }
-        }
-
-        // Now process notifications asynchronously
-        for task in dueTasks {
-            Task {
-                await processNotification(for: task)
-            }
-        }
-
+        URLCache.shared.removeAllCachedResponses()
         isProcessing = false
     }
 
@@ -95,7 +98,7 @@ final class SchedulerService {
 
         do {
             let promptTemplate = try promptService.readPrompt()
-            let context = task.fileContent
+            let context = readFileContent(for: task) ?? ""
             let prompt = promptService.substitute(
                 prompt: promptTemplate,
                 tasks: taskStore.tasks,
@@ -140,5 +143,10 @@ final class SchedulerService {
 
             taskStore.addNotification(notification)
         }
+    }
+
+    private func readFileContent(for task: TaskItem) -> String? {
+        let url = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(task.filePath)
+        return try? String(contentsOf: url, encoding: .utf8)
     }
 }

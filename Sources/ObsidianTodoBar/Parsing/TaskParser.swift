@@ -27,8 +27,7 @@ struct TaskParser {
                 recurring: frontmatter.recurring,
                 selectedWeekdays: frontmatter.selectedWeekdays,
                 filePath: filePath,
-                lineNumber: index + 1,
-                fileContent: content
+                lineNumber: index + 1
             ))
         }
 

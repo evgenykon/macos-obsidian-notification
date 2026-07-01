@@ -50,7 +50,8 @@ final class MenuBarManager: NSObject {
                 onOpenHistory: { [weak self] in self?.openHistory() },
                 onMarkDone: { [weak self] task in self?.markDone(task: task) },
                 onAddTask: { [weak self] in self?.openAddTask() },
-                onEditTask: { [weak self] task in self?.openEditTask(task: task) }
+                onEditTask: { [weak self] task in self?.openEditTask(task: task) },
+                onDeleteTask: { [weak self] task in self?.confirmDelete(task: task) }
             )
         )
     }
@@ -289,7 +290,7 @@ final class MenuBarManager: NSObject {
             return
         }
 
-        let data = AddTaskData(from: task)
+        let data = AddTaskData(from: task, vaultPath: config.vaultPath)
         let hostingController = NSHostingController(
             rootView: AddTaskView(
                 data: data,
@@ -337,6 +338,27 @@ final class MenuBarManager: NSObject {
             try taskStore.markDone(task: task)
         } catch {
             print("Failed to mark done: \(error.localizedDescription)")
+        }
+    }
+
+    private func confirmDelete(task: TaskItem) {
+        let alert = NSAlert()
+        alert.messageText = "Удалить задачу?"
+        alert.informativeText = "Файл «\(task.title)» будет перемещён в корзину."
+        alert.addButton(withTitle: "Удалить")
+        alert.addButton(withTitle: "Отмена")
+        alert.alertStyle = .warning
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            do {
+                try taskStore.deleteTask(task)
+            } catch {
+                let err = NSAlert()
+                err.messageText = "Ошибка при удалении"
+                err.informativeText = error.localizedDescription
+                err.runModal()
+            }
         }
     }
 

@@ -4,6 +4,7 @@ struct TaskRowView: View {
     let task: TaskItem
     let onMarkDone: (TaskItem) -> Void
     let onEdit: (TaskItem) -> Void
+    let onDelete: (TaskItem) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -51,6 +52,16 @@ struct TaskRowView: View {
             }
             .buttonStyle(.plain)
             .help("Редактировать")
+
+            Button {
+                onDelete(task)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Удалить")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)

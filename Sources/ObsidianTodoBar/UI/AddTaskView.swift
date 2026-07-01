@@ -12,7 +12,7 @@ struct AddTaskData {
 
     init() {}
 
-    init(from task: TaskItem) {
+    init(from task: TaskItem, vaultPath: String) {
         title = task.title
         dueDate = task.dueDate ?? Date()
         if let timeStr = task.time {
@@ -30,10 +30,13 @@ struct AddTaskData {
         case .weekdays:     recurring = .daysOfWeek; selectedDays = [.monday, .tuesday, .wednesday, .thursday, .friday]
         case nil:           recurring = .none
         }
-        let lines = task.fileContent.split(separator: "\n").map(String.init)
-        checklistItems = lines
-            .filter { $0.hasPrefix("- [ ]") || $0.hasPrefix("- [x]") || $0.hasPrefix("- [X]") }
-            .map { ChecklistItem(text: String($0.dropFirst(5)).trimmingCharacters(in: .whitespaces)) }
+        let fileURL = URL(fileURLWithPath: vaultPath).appendingPathComponent(task.filePath)
+        if let content = try? String(contentsOf: fileURL, encoding: .utf8) {
+            let lines = content.split(separator: "\n").map(String.init)
+            checklistItems = lines
+                .filter { $0.hasPrefix("- [ ]") || $0.hasPrefix("- [x]") || $0.hasPrefix("- [X]") }
+                .map { ChecklistItem(text: String($0.dropFirst(5)).trimmingCharacters(in: .whitespaces)) }
+        }
         if checklistItems.isEmpty {
             checklistItems = [ChecklistItem(text: task.title)]
         }
