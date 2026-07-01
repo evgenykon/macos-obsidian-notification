@@ -60,6 +60,14 @@ final class MenuBarManager: NSObject {
         refreshItem.target = self
         m.addItem(refreshItem)
 
+        let reloadItem = NSMenuItem(title: "Reload prompt", action: #selector(reloadPrompt), keyEquivalent: "r")
+        reloadItem.target = self
+        m.addItem(reloadItem)
+
+        let editItem = NSMenuItem(title: "Edit prompt in Obsidian", action: #selector(editPrompt), keyEquivalent: "e")
+        editItem.target = self
+        m.addItem(editItem)
+
         m.addItem(.separator())
 
         let addTaskItem = NSMenuItem(title: "✏️ Add task...", action: #selector(openAddTask), keyEquivalent: "n")
