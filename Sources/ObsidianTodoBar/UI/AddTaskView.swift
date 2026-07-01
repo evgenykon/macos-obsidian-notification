@@ -42,78 +42,82 @@ struct AddTaskView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            header
-
+        VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                     titleSection
+                    Divider()
                     dateSection
+                    Divider()
                     recurringSection
+                    Divider()
                     checklistSection
                 }
+                .padding(20)
             }
 
             footer
         }
-        .padding(20)
-        .frame(width: 460)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var header: some View {
-        HStack {
-            Image(systemName: "plus.circle.fill")
-                .foregroundColor(.accentColor)
-                .font(.title3)
-            Text("Новая задача")
-                .font(.headline)
-            Spacer()
-        }
+        .frame(width: 500, height: 580)
     }
 
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Название").font(.caption).foregroundColor(.secondary)
-            TextField("Введите название задачи", text: $data.title)
+            Text("Название")
+                .font(.headline)
+            TextField("Например: Купить продукты", text: $data.title)
                 .textFieldStyle(.roundedBorder)
         }
     }
 
     private var dateSection: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Срок").font(.caption).foregroundColor(.secondary)
-                DatePicker(
-                    selection: $data.dueDate,
-                    in: Date()...,
-                    displayedComponents: .date
-                ) {
-                    EmptyView()
-                }
-                .datePickerStyle(.field)
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Срок")
+                .font(.headline)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Toggle(isOn: $data.hasTime) {
-                    Text("Время").font(.caption).foregroundColor(.secondary)
-                }
-                if data.hasTime {
+            HStack(spacing: 24) {
+                HStack(spacing: 8) {
+                    Text("Дата:")
+                        .foregroundColor(.secondary)
                     DatePicker(
-                        selection: $data.time,
-                        displayedComponents: .hourAndMinute
+                        selection: $data.dueDate,
+                        in: Date()...,
+                        displayedComponents: .date
                     ) {
                         EmptyView()
                     }
                     .datePickerStyle(.field)
+                    .frame(width: 130)
+                }
+
+                HStack(spacing: 8) {
+                    Toggle(isOn: $data.hasTime) {
+                        Text("Время")
+                            .foregroundColor(.secondary)
+                    }
+                    .toggleStyle(.checkbox)
+                    .fixedSize()
+
+                    if data.hasTime {
+                        DatePicker(
+                            selection: $data.time,
+                            displayedComponents: .hourAndMinute
+                        ) {
+                            EmptyView()
+                        }
+                        .datePickerStyle(.field)
+                        .frame(width: 80)
+                    }
                 }
             }
         }
     }
 
     private var recurringSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Повторение").font(.caption).foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Повторение")
+                .font(.headline)
+
             Picker("", selection: $data.recurring) {
                 ForEach(AddTaskData.RecurringOption.allCases, id: \.self) { option in
                     Text(option.rawValue).tag(option)
@@ -124,61 +128,72 @@ struct AddTaskView: View {
     }
 
     private var checklistSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Чеклист").font(.caption).foregroundColor(.secondary)
-                Spacer()
-                Button {
-                    withAnimation { data.checklistItems.append(.init(text: "")) }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.caption)
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.accentColor)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Чеклист")
+                .font(.headline)
+
+            if data.checklistItems.isEmpty {
+                Text("Нет пунктов")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
-            VStack(spacing: 4) {
-                ForEach(Array(data.checklistItems.enumerated()), id: \.element.id) { index, _ in
-                    HStack(spacing: 8) {
-                        Image(systemName: "circle")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                        TextField("Пункт \(index + 1)", text: $data.checklistItems[index].text)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
-                        if data.checklistItems.count > 1 {
-                            Button {
-                                withAnimation {
-                                    let idx = data.checklistItems.index(data.checklistItems.startIndex, offsetBy: index)
-                                    data.checklistItems.remove(at: idx)
-                                }
-                            } label: {
-                                Image(systemName: "minus.circle")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
+            ForEach(Array(data.checklistItems.enumerated()), id: \.element.id) { index, _ in
+                HStack(spacing: 8) {
+                    Image(systemName: "circle")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Пункт \(index + 1)", text: $data.checklistItems[index].text)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button {
+                        withAnimation {
+                            let id = data.checklistItems[index].id
+                            data.checklistItems.removeAll { $0.id == id }
                         }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
                     }
+                    .buttonStyle(.plain)
+                    .opacity(data.checklistItems.count > 1 ? 1 : 0)
+                    .disabled(data.checklistItems.count <= 1)
                 }
             }
+
+            Button {
+                withAnimation {
+                    data.checklistItems.append(.init(text: ""))
+                }
+            } label: {
+                Label("Добавить пункт", systemImage: "plus.circle")
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.accentColor)
         }
     }
 
     private var footer: some View {
-        HStack {
-            Button("Отмена", role: .cancel) {
-                onCancel()
-            }
-            .keyboardShortcut(.escape)
+        VStack(spacing: 0) {
+            Divider()
 
-            Spacer()
+            HStack {
+                Button("Отмена", role: .cancel) {
+                    onCancel()
+                }
+                .keyboardShortcut(.escape)
 
-            Button("Сохранить") {
-                onSave(data)
+                Spacer()
+
+                Button("Создать задачу") {
+                    onSave(data)
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(data.title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .keyboardShortcut(.defaultAction)
-            .disabled(data.title.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
+        .background(.regularMaterial)
     }
 }

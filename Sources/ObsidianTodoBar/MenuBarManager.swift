@@ -277,7 +277,7 @@ final class MenuBarManager: NSObject {
 
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Новая задача"
-        window.setContentSize(NSSize(width: 460, height: 520))
+        window.setContentSize(NSSize(width: 500, height: 580))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
 
