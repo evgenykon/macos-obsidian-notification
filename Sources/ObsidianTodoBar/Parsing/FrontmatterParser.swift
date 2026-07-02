@@ -3,6 +3,8 @@ import Foundation
 struct Frontmatter {
     var dueDate: Date?
     var time: String?
+    var overrideTime: String?
+    var skipDate: String?
     var recurring: Recurring?
     var selectedWeekdays: Weekday = []
 }
@@ -26,6 +28,8 @@ struct FrontmatterParser {
 
         var dueDate: Date?
         var time: String?
+        var overrideTime: String?
+        var skipDate: String?
         var recurring: Recurring?
         var selectedWeekdays = Weekday()
 
@@ -50,6 +54,10 @@ struct FrontmatterParser {
                 }
             case "time":
                 time = value
+            case "overrideTime":
+                overrideTime = value
+            case "skipDate":
+                skipDate = value
             case "recurring":
                 recurring = Recurring.allCases.first { $0.rawValue.lowercased() == value.lowercased() }
             case "days":
@@ -73,6 +81,8 @@ struct FrontmatterParser {
         return Frontmatter(
             dueDate: dueDate,
             time: time,
+            overrideTime: overrideTime,
+            skipDate: skipDate,
             recurring: recurring,
             selectedWeekdays: selectedWeekdays
         )

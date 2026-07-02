@@ -58,11 +58,12 @@ final class SchedulerService {
             // Advance recurring tasks that need it:
             //   1. Done tasks — reset checkbox and move to next date
             //   2. Tasks whose due date passed (yesterday or earlier) — catch up to today
+            //   3. Tasks skipped for today — advance to next occurrence
             let todayStart = Calendar.current.startOfDay(for: Date())
             var advancedFiles = Set<String>()
             for task in taskStore.tasks where task.recurring != nil && !advancedFiles.contains(task.filePath) {
                 guard let dueDate = task.dueDate else { continue }
-                if task.isDone || dueDate < todayStart {
+                if task.isDone || task.isSkippedToday || dueDate < todayStart {
                     try? taskStore.advanceRecurringTask(task)
                     advancedFiles.insert(task.filePath)
                 }

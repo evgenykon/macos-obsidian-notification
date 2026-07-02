@@ -46,6 +46,7 @@ final class TaskStore {
 
         return tasks.filter { task in
             guard !task.isDone else { return false }
+            guard !task.isSkippedToday else { return false }
             guard !notifiedTaskIDs.contains(task.id) else { return false }
             guard let effectiveDate = task.effectiveDate else { return false }
             guard effectiveDate <= now else { return false }
@@ -59,6 +60,55 @@ final class TaskStore {
 
     func markNotified(_ task: TaskItem) {
         notifiedTaskIDs.insert(task.id)
+    }
+
+    func skipToday(_ task: TaskItem) throws {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let today = df.string(from: Date())
+
+        let fileURL = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(task.filePath)
+        var content = try String(contentsOf: fileURL, encoding: .utf8)
+
+        if let range = content.range(of: "skipDate:") {
+            let lineStart = range.lowerBound
+            let lineEnd = content[lineStart...].firstIndex(of: "\n") ?? content.endIndex
+            content.replaceSubrange(lineStart..<lineEnd, with: "skipDate: \(today)")
+        } else {
+            if let dueRange = content.range(of: "due:") {
+                let lineEnd = content[dueRange.lowerBound...].firstIndex(of: "\n") ?? content.endIndex
+                content.insert(contentsOf: "\nskipDate: \(today)", at: lineEnd)
+            }
+        }
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+        refreshTasks()
+    }
+
+    func postponeOneHour(_ task: TaskItem) throws {
+        let calendar = Calendar.current
+        let now = Date()
+        let newHour = calendar.component(.hour, from: now.addingTimeInterval(3600))
+        let newMinute = calendar.component(.minute, from: now.addingTimeInterval(3600))
+        let newTime = String(format: "%02d:%02d", newHour, newMinute)
+
+        let fileURL = URL(fileURLWithPath: config.vaultPath).appendingPathComponent(task.filePath)
+        var content = try String(contentsOf: fileURL, encoding: .utf8)
+
+        if let range = content.range(of: "overrideTime:") {
+            let lineStart = range.lowerBound
+            let lineEnd = content[lineStart...].firstIndex(of: "\n") ?? content.endIndex
+            content.replaceSubrange(lineStart..<lineEnd, with: "overrideTime: \(newTime)")
+        } else {
+            if let dueRange = content.range(of: "due:") {
+                let lineEnd = content[dueRange.lowerBound...].firstIndex(of: "\n") ?? content.endIndex
+                content.insert(contentsOf: "\noverrideTime: \(newTime)", at: lineEnd)
+            }
+        }
+
+        try content.write(to: fileURL, atomically: true, encoding: .utf8)
+        notifiedTaskIDs.remove(task.id)
+        refreshTasks()
     }
 
     func advanceRecurringTask(_ task: TaskItem) throws {
@@ -86,6 +136,17 @@ final class TaskStore {
 
         content = content.replacingOccurrences(of: "- [x]", with: "- [ ]")
         content = content.replacingOccurrences(of: "- [X]", with: "- [ ]")
+
+        // Clear temporary override fields
+        content = content.replacingOccurrences(
+            of: "\nskipDate: \(dateString)",
+            with: ""
+        )
+        content = content.replacingOccurrences(
+            of: "\noverrideTime: \\d{2}:\\d{2}",
+            with: "",
+            options: .regularExpression
+        )
 
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
 

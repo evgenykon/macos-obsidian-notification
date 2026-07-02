@@ -5,6 +5,8 @@ struct TaskRowView: View {
     let onMarkDone: (TaskItem) -> Void
     let onEdit: (TaskItem) -> Void
     let onDelete: (TaskItem) -> Void
+    let onSkipToday: (TaskItem) -> Void
+    let onPostpone: (TaskItem) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -24,7 +26,20 @@ struct TaskRowView: View {
                     .foregroundColor(task.isDone ? .secondary : .primary)
                     .lineLimit(2)
 
-                if let time = task.time {
+                if let overrideTime = task.overrideTime {
+                    HStack(spacing: 4) {
+                        if let time = task.time {
+                            Text(time)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .strikethrough()
+                        }
+                        Text(overrideTime)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.accentColor)
+                    }
+                } else if let time = task.time {
                     Text(time)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -43,25 +58,29 @@ struct TaskRowView: View {
                     .cornerRadius(4)
             }
 
-            Button {
-                onEdit(task)
+            Menu {
+                Button("Отменить сегодня", systemImage: "forward") {
+                    onSkipToday(task)
+                }
+                Button("Перенести на час", systemImage: "clock.arrow.2.circlepath") {
+                    onPostpone(task)
+                }
+                Divider()
+                Button("Редактировать", systemImage: "pencil") {
+                    onEdit(task)
+                }
+                Button("Удалить", systemImage: "trash", role: .destructive) {
+                    onDelete(task)
+                }
             } label: {
-                Image(systemName: "pencil")
+                Image(systemName: "ellipsis")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
             }
-            .buttonStyle(.plain)
-            .help("Редактировать")
-
-            Button {
-                onDelete(task)
-            } label: {
-                Image(systemName: "trash")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("Удалить")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)

@@ -123,6 +123,8 @@ struct TaskItem: Identifiable, Sendable {
     var isDone: Bool
     var dueDate: Date?
     var time: String?
+    var overrideTime: String?
+    var skipDate: String?
     var recurring: Recurring?
     var selectedWeekdays: Weekday
     var filePath: String
@@ -133,6 +135,8 @@ struct TaskItem: Identifiable, Sendable {
         isDone: Bool = false,
         dueDate: Date? = nil,
         time: String? = nil,
+        overrideTime: String? = nil,
+        skipDate: String? = nil,
         recurring: Recurring? = nil,
         selectedWeekdays: Weekday = [],
         filePath: String,
@@ -143,6 +147,8 @@ struct TaskItem: Identifiable, Sendable {
         self.isDone = isDone
         self.dueDate = dueDate
         self.time = time
+        self.overrideTime = overrideTime
+        self.skipDate = skipDate
         self.recurring = recurring
         self.selectedWeekdays = selectedWeekdays
         self.filePath = filePath
@@ -151,8 +157,9 @@ struct TaskItem: Identifiable, Sendable {
 
     var effectiveDate: Date? {
         guard let dueDate else { return nil }
-        if let time {
-            let parts = time.split(separator: ":")
+        let effectiveTime = overrideTime ?? time
+        if let effectiveTime {
+            let parts = effectiveTime.split(separator: ":")
             if parts.count == 2,
                let hour = Int(parts[0]),
                let minute = Int(parts[1])
@@ -184,6 +191,13 @@ struct TaskItem: Identifiable, Sendable {
         let today = Calendar.current.component(.weekday, from: Date())
         guard let weekday = Weekday.from(calendarWeekday: today) else { return false }
         return selectedWeekdays.contains(weekday)
+    }
+
+    var isSkippedToday: Bool {
+        guard let skipDate else { return false }
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        return df.string(from: Date()) == skipDate
     }
 
     var checkboxPattern: String {

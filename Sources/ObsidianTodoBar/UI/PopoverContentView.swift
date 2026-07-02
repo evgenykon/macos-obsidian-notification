@@ -9,6 +9,8 @@ struct PopoverContentView: View {
     let onAddTask: () -> Void
     let onEditTask: (TaskItem) -> Void
     let onDeleteTask: (TaskItem) -> Void
+    let onSkipToday: (TaskItem) -> Void
+    let onPostpone: (TaskItem) -> Void
 
     private var todayTasks: [TaskItem] {
         taskStore.tasks.filter { !$0.isDone && ($0.isOverdue || $0.isDueToday) }
@@ -50,7 +52,9 @@ struct PopoverContentView: View {
                         tasks: todayTasks,
                         onMarkDone: onMarkDone,
                         onEdit: onEditTask,
-                        onDelete: onDeleteTask
+                        onDelete: onDeleteTask,
+                        onSkipToday: onSkipToday,
+                        onPostpone: onPostpone
                     )
                 }
 

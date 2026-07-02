@@ -5,6 +5,8 @@ struct TaskListView: View {
     let onMarkDone: (TaskItem) -> Void
     let onEdit: (TaskItem) -> Void
     let onDelete: (TaskItem) -> Void
+    let onSkipToday: (TaskItem) -> Void
+    let onPostpone: (TaskItem) -> Void
 
     private func fileName(from path: String) -> String {
         let name = (path as NSString).lastPathComponent
@@ -75,7 +77,7 @@ struct TaskListView: View {
                                     .padding(.top, 4)
 
                                 ForEach(fileTasks) { task in
-                                    TaskRowView(task: task, onMarkDone: onMarkDone, onEdit: onEdit, onDelete: onDelete)
+                                    TaskRowView(task: task, onMarkDone: onMarkDone, onEdit: onEdit, onDelete: onDelete, onSkipToday: onSkipToday, onPostpone: onPostpone)
                                 }
                             }
                         }

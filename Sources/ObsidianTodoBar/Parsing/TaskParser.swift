@@ -24,6 +24,8 @@ struct TaskParser {
                 isDone: isDone,
                 dueDate: frontmatter.dueDate,
                 time: frontmatter.time,
+                overrideTime: frontmatter.overrideTime,
+                skipDate: frontmatter.skipDate,
                 recurring: frontmatter.recurring,
                 selectedWeekdays: frontmatter.selectedWeekdays,
                 filePath: filePath,

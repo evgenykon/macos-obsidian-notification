@@ -51,7 +51,9 @@ final class MenuBarManager: NSObject {
                 onMarkDone: { [weak self] task in self?.markDone(task: task) },
                 onAddTask: { [weak self] in self?.openAddTask() },
                 onEditTask: { [weak self] task in self?.openEditTask(task: task) },
-                onDeleteTask: { [weak self] task in self?.confirmDelete(task: task) }
+                onDeleteTask: { [weak self] task in self?.confirmDelete(task: task) },
+                onSkipToday: { [weak self] task in self?.handleSkipToday(task: task) },
+                onPostpone: { [weak self] task in self?.handlePostpone(task: task) }
             )
         )
     }
@@ -359,6 +361,28 @@ final class MenuBarManager: NSObject {
                 err.informativeText = error.localizedDescription
                 err.runModal()
             }
+        }
+    }
+
+    private func handleSkipToday(task: TaskItem) {
+        do {
+            try taskStore.skipToday(task)
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Ошибка"
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
+    }
+
+    private func handlePostpone(task: TaskItem) {
+        do {
+            try taskStore.postponeOneHour(task)
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Ошибка"
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
         }
     }
 
